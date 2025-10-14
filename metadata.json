@@ -1,0 +1,5 @@
+{
+  "name": "Order and Procurement Management Tool",
+  "description": "A tool to register and track PC procurement contracts. It features a task checklist for each project and a dashboard to monitor order goals.",
+  "requestFramePermissions": []
+}
