@@ -10,16 +10,29 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
       /* Simple transition for collapsible filter */
-      .filter-content, .expandable-content {
+      .filter-content {
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.4s ease-in-out;
       }
-      .filter-content.open, .expandable-content.open {
+      .filter-content.open {
         max-height: 600px; /* Adjust as needed */
       }
-      .expandable-content {
-        transition: max-height 0.3s ease-in-out;
+      /* Ensure sticky header has a background and stays on top */
+      .sticky-header {
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          background-color: #f1f5f9; /* bg-slate-100 */
+      }
+      .goal-success-toast {
+        animation: fadeInOut 3s ease-in-out;
+      }
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateY(-10px); }
+        20% { opacity: 1; transform: translateY(0); }
+        80% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-10px); }
       }
     </style>
 <link rel="stylesheet" href="/index.css">
@@ -27,7 +40,7 @@
 <body class="bg-slate-100 text-slate-800">
     <div id="root"></div>
     <script type="text/babel">
-      const { useState, useMemo, useCallback, useEffect } = React;
+      const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
       // --- CONSTANTS ---
       const TASKS = [
@@ -36,14 +49,14 @@
       ];
       const CUSTOMER_CATEGORIES = ['会計事務所', '関与先'];
       const DIVISIONS = ['新規', 'リプレイス', 'その他'];
-      const PRODUCT_TYPES = ['PC', 'サーバー', 'ソフトウェア', 'その他'];
-      const PAYMENT_TYPES = ['一括', '分割', 'リース', 'COD'];
-      const SETUP_OPTIONS = ['あり', 'なし', 'あり (SCG)'];
+      const PRODUCT_TYPES = ['PC', 'スキャナ', 'プリンタ', 'ルータ', 'その他'];
+      const PAYMENT_TYPES = ['COD', 'MIST', '後払い'];
+      const SETUP_OPTIONS = ['なし', 'あり (SCG)', 'あり (Q&A)', 'あり (NSG)'];
       const MAINTENANCE_OPTIONS = ['あり', 'なし'];
-      const STATUS_OPTIONS = ['すべて', '進行中', '完了'];
+      const STATUS_OPTIONS = ['すべて', '受注済み', '完了済み', '失注'];
       const SORT_OPTIONS = {
-        'registrationDate_asc': '登録日が古い順',
         'registrationDate_desc': '登録日が新しい順',
+        'registrationDate_asc': '登録日が古い順',
         'mainAmount_desc': '金額が高い順',
         'mainAmount_asc': '金額が低い順',
       };
@@ -53,17 +66,34 @@
         '2025-01-01', '2025-01-13', '2025-02-11', '2025-02-24', '2025-03-20', '2025-04-29', '2025-05-03', '2025-05-04', '2025-05-05', '2025-05-06', '2025-07-21', '2025-08-11', '2025-09-15', '2025-09-23', '2025-10-13', '2025-11-03', '2025-11-24',
         // 2026
         '2026-01-01', '2026-01-12', '2026-02-11', '2026-02-23', '2026-03-20', '2026-04-29', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-6', '2026-07-20', '2026-08-11', '2026-09-21', '2026-09-22', '2026-09-23', '2026-10-12', '2026-11-03', '2026-11-23',
-        // Add more years as needed
       ]);
+
+      // --- HELPERS ---
+      const getVisibleTasks = (project) => {
+          let visible = [...TASKS];
+          if (project.division === '新規') {
+              visible = visible.filter(t => t !== 'ネゴ提案');
+          }
+          if (project.paymentType === 'COD' && project.setup === 'なし') {
+              visible = visible.filter(t => t !== '検収作成' && t !== '検収送付');
+          }
+          if (project.maintenance === 'なし') {
+              visible = visible.filter(t => t !== '保守作成' && t !== '保守送付');
+          }
+          return visible;
+      };
 
       // --- ICONS ---
       const PlusIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>);
       const XIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>);
       const ChevronUpIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /></svg>);
-      const CheckIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.052-.143Z" clipRule="evenodd" /></svg>);
       const EditIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>);
       const TrashIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.033-2.134H8.033C6.91 2.75 6 3.704 6 4.884v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>);
       const ArrowCircleRightIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>);
+      const NoSymbolIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" /></svg>);
+      const DocumentTextIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>);
+      const CheckIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>);
+      const RefreshIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-3.181-4.991-3.181-3.183a8.25 8.25 0 0 0-11.664 0l-3.181 3.183" /></svg>);
 
       // --- HOOKS ---
       const usePeriodCalculator = () => {
@@ -75,16 +105,16 @@
                   const year = startYear + i;
                   const period = startPeriod + i;
                   const reiwaYear = year - 2018;
-                  // 上期 (First Half): Oct to Mar
                   periods.push({
-                      label: `第${period}期 上期 (令和${reiwaYear}年10月～令和${reiwaYear + 1}年3月)`,
+                      label: `第${period}期 上期 (R${reiwaYear}年10月～R${reiwaYear + 1}年3月)`,
                       value: `${period}-1`,
+                      startDate: new Date(year, 9, 1),
                       endDate: new Date(year + 1, 2, 31),
                   });
-                  // 下期 (Second Half): Apr to Sep
                   periods.push({
-                      label: `第${period}期 下期 (令和${reiwaYear + 1}年4月～令和${reiwaYear + 1}年9月)`,
+                      label: `第${period}期 下期 (R${reiwaYear + 1}年4月～R${reiwaYear + 1}年9月)`,
                       value: `${period}-2`,
+                      startDate: new Date(year + 1, 3, 1),
                       endDate: new Date(year + 1, 8, 30),
                   });
               }
@@ -92,7 +122,13 @@
           };
 
           const allPeriods = useMemo(generatePeriods, []);
-          const [selectedPeriod, setSelectedPeriod] = useState(allPeriods[0].value);
+          
+          const getCurrentPeriod = () => {
+              const now = new Date();
+              return allPeriods.find(p => now >= p.startDate && now <= p.endDate) || allPeriods[0];
+          }
+
+          const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod().value);
           
           const calculateBusinessDays = useCallback((endDate) => {
               let count = 0;
@@ -122,53 +158,129 @@
       const Input = (props) => <input {...props} className="block w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
       const Select = (props) => <select {...props} className="block w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
       const Label = ({htmlFor, children}) => <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700 mb-1">{children}</label>;
+      
+      const ModalInput = React.forwardRef((props, ref) => <input {...props} ref={ref} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />);
+      const ModalSelect = (props) => <select {...props} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
+      const ModalTextarea = (props) => <textarea {...props} rows="3" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
+      const ModalLabel = ({htmlFor, children}) => <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700">{children}</label>;
+
+      const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+          if (!isOpen) return null;
+          return (
+              <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+                  <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                      <div className="p-6">
+                          <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+                          <p className="mt-2 text-sm text-slate-600">{message}</p>
+                      </div>
+                      <div className="px-6 py-4 bg-slate-50 flex justify-end items-center space-x-3 rounded-b-lg">
+                          <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">キャンセル</button>
+                          <button onClick={onConfirm} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">実行する</button>
+                      </div>
+                  </div>
+              </div>
+          );
+      };
 
       const NewProjectModal = ({ isOpen, onClose, onSaveProject, editingProject }) => {
         const isEditMode = !!editingProject;
+        const dateInputRef = useRef(null);
 
-        const getInitialState = () => {
-            if (isEditMode) return { ...editingProject };
+        const getInitialState = (project = null) => {
+            if (project) return { setupAmount: 0, isLost: false, ...project };
             return {
                 category: CUSTOMER_CATEGORIES[0], clientName: '', registrationDate: new Date().toISOString().split('T')[0],
                 mainAmount: 0, projectName: '', division: DIVISIONS[0], productType: PRODUCT_TYPES[0],
-                paymentType: PAYMENT_TYPES[0], setup: SETUP_OPTIONS[1], maintenance: MAINTENANCE_OPTIONS[1], memo: ''
+                paymentType: PAYMENT_TYPES[0], setup: SETUP_OPTIONS[0], maintenance: MAINTENANCE_OPTIONS[0], memo: '', setupAmount: 0, isLost: false,
             };
         };
-
-        const [formState, setFormState] = useState(getInitialState());
+        
+        const [formState, setFormState] = useState(getInitialState(editingProject));
         const [step, setStep] = useState(1);
+
+        const availableProductTypes = useMemo(() => {
+            if (formState.category === '関与先') return PRODUCT_TYPES.filter(p => p !== 'ルータ');
+            return PRODUCT_TYPES;
+        }, [formState.category]);
+
+        const availablePaymentTypes = useMemo(() => {
+            if (formState.category === '関与先') return PAYMENT_TYPES.filter(p => p !== 'MIST');
+            return PAYMENT_TYPES;
+        }, [formState.category]);
+
+        const availableSetupOptions = useMemo(() => {
+            if (formState.category === '会計事務所') return SETUP_OPTIONS.filter(s => s !== 'あり (Q&A)');
+            if (formState.category === '関与先') return SETUP_OPTIONS.filter(s => s !== 'あり (NSG)');
+            return SETUP_OPTIONS;
+        }, [formState.category]);
         
         useEffect(() => { 
             if (isOpen) {
-                const initialState = getInitialState();
+                const initialState = getInitialState(editingProject);
                 setFormState(initialState);
                 setStep(isEditMode ? 2 : 1);
             }
         }, [isOpen, editingProject]);
         
+        useEffect(() => {
+          if (isOpen && step === 2) {
+            setTimeout(() => dateInputRef.current?.focus(), 100);
+          }
+        }, [isOpen, step]);
+        
+        useEffect(() => {
+            const updates = {};
+            if (!availableProductTypes.includes(formState.productType)) {
+                updates.productType = availableProductTypes[0];
+            }
+            if (!availablePaymentTypes.includes(formState.paymentType)) {
+                updates.paymentType = availablePaymentTypes[0];
+            }
+            if (!availableSetupOptions.includes(formState.setup)) {
+                updates.setup = availableSetupOptions[0];
+            }
+            if (Object.keys(updates).length > 0) {
+                setFormState(prev => ({ ...prev, ...updates }));
+            }
+        }, [formState.category, availableProductTypes, availablePaymentTypes, availableSetupOptions]);
+
         const handleCategorySelect = (category) => {
-            setFormState(prev => ({...prev, category}));
+            setFormState(prev => ({...getInitialState(), category}));
             setStep(2);
         };
 
         const handleChange = (e) => {
             const { name, value, type } = e.target;
-            setFormState(prev => ({ ...prev, [name]: type === 'number' ? Number(value) : value }));
+            setFormState(prevFormState => {
+                const newFormState = { ...prevFormState, [name]: type === 'number' ? Number(value) : value };
+
+                if (name === 'productType') {
+                    if (value === 'PC' || value === 'プリンタ') {
+                        newFormState.paymentType = 'COD'; newFormState.maintenance = 'あり';
+                    } else if (value === 'スキャナ') {
+                        newFormState.paymentType = 'COD'; newFormState.setup = 'なし'; newFormState.maintenance = 'なし'; newFormState.setupAmount = 0;
+                    } else if (value === 'ルータ' && prevFormState.category === '会計事務所') {
+                        newFormState.paymentType = 'MIST'; newFormState.setup = 'あり (NSG)'; newFormState.setupAmount = 30000;
+                    }
+                } else if (name === 'setup') {
+                    if (value === 'あり (Q&A)') newFormState.setupAmount = 15000;
+                    else if (value === 'あり (NSG)') newFormState.setupAmount = 30000;
+                    else if (value === 'なし') newFormState.setupAmount = 0;
+                }
+                return newFormState;
+            });
         };
 
         const handleSubmit = (e) => {
             e.preventDefault();
-            if (!formState.projectName || !formState.clientName) { alert('顧客名と案件名は必須です。'); return; }
+            if (!formState.registrationDate || !formState.projectName || !formState.clientName) { alert('登録日、顧客名、案件名は必須です。'); return; }
             onSaveProject(formState); 
             onClose();
         };
 
         if (!isOpen) return null;
         
-        const ModalInput = (props) => <input {...props} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
-        const ModalSelect = (props) => <select {...props} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
-        const ModalTextarea = (props) => <textarea {...props} rows="3" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
-        const ModalLabel = ({htmlFor, children}) => <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700">{children}</label>;
+        const showSetupAmount = formState.setup !== 'なし';
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4" onClick={onClose}>
@@ -184,18 +296,18 @@
                 )}
                 {step === 2 && (
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-slate-200 flex justify-between items-center"><h3 className="text-xl font-bold text-slate-800">{isEditMode ? '案件の編集' : '新規案件の登録'}</h3><button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"><XIcon className="w-5 h-5" /></button></div>
+                        <div className="p-6 border-b border-slate-200 flex justify-between items-center"><h3 className="text-xl font-bold text-slate-800">{isEditMode ? '案件の編集' : `新規案件の登録 (${formState.category})`}</h3><button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"><XIcon className="w-5 h-5" /></button></div>
                         <form onSubmit={handleSubmit}>
                             <div className="p-6 max-h-[70vh] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                <div><ModalLabel htmlFor="category">顧客種別</ModalLabel><ModalSelect name="category" id="category" value={formState.category} onChange={handleChange}>{CUSTOMER_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</ModalSelect></div>
+                                <div><ModalLabel htmlFor="registrationDate">登録日 <span className="text-red-500">*</span></ModalLabel><ModalInput type="date" name="registrationDate" id="registrationDate" value={formState.registrationDate} onChange={handleChange} ref={dateInputRef} required /></div>
                                 <div><ModalLabel htmlFor="clientName">顧客名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="clientName" id="clientName" value={formState.clientName} onChange={handleChange} required /></div>
-                                <div><ModalLabel htmlFor="registrationDate">登録日</ModalLabel><ModalInput type="date" name="registrationDate" id="registrationDate" value={formState.registrationDate} onChange={handleChange} /></div>
-                                <div><ModalLabel htmlFor="mainAmount">本体金額 (税抜)</ModalLabel><ModalInput type="number" name="mainAmount" id="mainAmount" value={formState.mainAmount} onChange={handleChange} /></div>
                                 <div className="md:col-span-2"><ModalLabel htmlFor="projectName">案件名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="projectName" id="projectName" value={formState.projectName} onChange={handleChange} required /></div>
+                                <div><ModalLabel htmlFor="mainAmount">本体金額 (税抜)</ModalLabel><ModalInput type="number" name="mainAmount" id="mainAmount" value={formState.mainAmount} onChange={handleChange} /></div>
                                 <div><ModalLabel htmlFor="division">区分</ModalLabel><ModalSelect name="division" id="division" value={formState.division} onChange={handleChange}>{DIVISIONS.map(d => <option key={d}>{d}</option>)}</ModalSelect></div>
-                                <div><ModalLabel htmlFor="productType">商品種別</ModalLabel><ModalSelect name="productType" id="productType" value={formState.productType} onChange={handleChange}>{PRODUCT_TYPES.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
-                                <div><ModalLabel htmlFor="paymentType">支払区分</ModalLabel><ModalSelect name="paymentType" id="paymentType" value={formState.paymentType} onChange={handleChange}>{PAYMENT_TYPES.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
-                                <div><ModalLabel htmlFor="setup">セットアップ</ModalLabel><ModalSelect name="setup" id="setup" value={formState.setup} onChange={handleChange}>{SETUP_OPTIONS.map(s => <option key={s}>{s}</option>)}</ModalSelect></div>
+                                <div><ModalLabel htmlFor="productType">商品種別</ModalLabel><ModalSelect name="productType" id="productType" value={formState.productType} onChange={handleChange}>{availableProductTypes.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
+                                <div><ModalLabel htmlFor="paymentType">支払区分</ModalLabel><ModalSelect name="paymentType" id="paymentType" value={formState.paymentType} onChange={handleChange}>{availablePaymentTypes.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
+                                <div><ModalLabel htmlFor="setup">セットアップ</ModalLabel><ModalSelect name="setup" id="setup" value={formState.setup} onChange={handleChange}>{availableSetupOptions.map(s => <option key={s}>{s}</option>)}</ModalSelect></div>
+                                {showSetupAmount && <div><ModalLabel htmlFor="setupAmount">セットアップ金額 (税抜)</ModalLabel><ModalInput type="number" name="setupAmount" id="setupAmount" value={formState.setupAmount} onChange={handleChange} readOnly={formState.setup !== 'あり (SCG)'} /></div>}
                                 <div><ModalLabel htmlFor="maintenance">保守契約</ModalLabel><ModalSelect name="maintenance" id="maintenance" value={formState.maintenance} onChange={handleChange}>{MAINTENANCE_OPTIONS.map(m => <option key={m}>{m}</option>)}</ModalSelect></div>
                                 <div className="md:col-span-2"><ModalLabel htmlFor="memo">メモ</ModalLabel><ModalTextarea name="memo" id="memo" value={formState.memo} onChange={handleChange} /></div>
                             </div>
@@ -206,248 +318,585 @@
             </div>
         );
       };
-      
-      const ProjectTable = ({ projects, onTaskToggle, onEdit, onDelete, onCarryOver }) => {
-        const [expandedId, setExpandedId] = useState(null);
 
-        const ProjectDetailView = ({ project, onEdit, onDelete, onCarryOver }) => {
-            const DetailItem = ({ label, value }) => (<div className="flex flex-col"><dt className="text-xs text-slate-500">{label}</dt><dd className="text-sm text-slate-900 mt-1">{value || 'ー'}</dd></div>);
-            return (
-                <div className="bg-slate-50/70 p-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 mb-6">
-                        <DetailItem label="顧客種別" value={project.category} />
-                        <DetailItem label="区分" value={project.division} />
-                        <DetailItem label="支払区分" value={project.paymentType} />
-                        <DetailItem label="商品種別" value={project.productType} />
-                        <DetailItem label="セットアップ" value={project.setup} />
-                        <DetailItem label="保守契約" value={project.maintenance} />
-                        <DetailItem label="登録日" value={new Date(project.registrationDate).toLocaleDateString('ja-JP')} />
-                        <div className="flex flex-col">
-                           <dt className="text-xs text-slate-500">金額内訳</dt>
-                           <dd className="text-sm text-slate-900 mt-1">
-                                <div>本体: {project.mainAmount.toLocaleString()}円</div>
-                                <div>セットアップ: 0円</div>
-                                <div>合計: {project.mainAmount.toLocaleString()}円</div>
-                           </dd>
-                        </div>
-                         <div className="col-span-2 md:col-span-4"><DetailItem label="メモ" value={project.memo} /></div>
-                    </div>
-                    <div className="flex items-center gap-4 text-slate-600">
-                        <button onClick={() => onEdit(project)} className="flex items-center gap-2 hover:text-blue-600"><EditIcon className="w-5 h-5" /><span>編集</span></button>
-                        <button onClick={() => onDelete(project.id)} className="flex items-center gap-2 hover:text-red-600"><TrashIcon className="w-5 h-5" /><span>削除</span></button>
-                        <button onClick={() => onCarryOver(project)} className="flex items-center gap-2 hover:text-green-600"><ArrowCircleRightIcon className="w-5 h-5" /><span>繰り越し</span></button>
-                    </div>
-                </div>
-            );
-        };
+      const DetailItem = ({ label, value, className = "" }) => (<div className={`flex flex-col ${className}`}><dt className="text-xs text-slate-500">{label}</dt><dd className="text-sm text-slate-900 mt-1 break-words">{value || 'ー'}</dd></div>);
 
-        const ProjectCard = ({ project, onTaskToggle, onEdit, onDelete, onCarryOver }) => {
-            const nextTaskIndex = TASKS.findIndex(task => !project.tasks[task]);
-            const nextTask = nextTaskIndex !== -1 ? TASKS[nextTaskIndex] : null;
-            const status = nextTask ? `次: ${nextTask}` : '完了';
-            const isOrderReceived = project.tasks['本社発注'];
-            const isExpanded = expandedId === project.id;
-            
-            return (
-            <div className="bg-white hover:bg-slate-50 transition-colors duration-200">
-                <div className="flex justify-between items-start p-6 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : project.id)} role="button">
-                    <div className="flex-grow pr-4" style={{ flexBasis: '40%' }}>
-                        <div className="flex items-center gap-3">
-                            {isOrderReceived && <span className="flex-shrink-0 text-xs font-bold text-red-700 bg-red-100 border border-red-300 rounded-md px-2 py-1">受注済</span>}
-                            <h3 className="text-lg font-bold text-slate-900">{project.clientName} <span className="font-normal text-slate-500">/ {project.productType}</span></h3>
-                        </div>
-                        <span className={`inline-block text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full mt-2 ${nextTask ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{status}</span>
-                        <div className="text-sm text-slate-500 mt-4 flex flex-wrap gap-x-4 gap-y-1"><span>登録日: {new Date(project.registrationDate).toLocaleDateString('ja-JP')}</span><span>種別: {project.category}</span><span>金額: {project.mainAmount.toLocaleString()}円</span></div>
-                    </div>
-                    <div className="flex items-center space-x-2 pt-2" style={{ flexBasis: '60%' }}>
-                        {TASKS.map((task, index) => {
-                            const isCompleted = project.tasks[task];
-                            const isCurrent = index === nextTaskIndex;
-                            let taskElement;
-                            if (isCompleted) {
-                                taskElement = (<div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white" title={`${task} - 完了`}><CheckIcon className="w-4 h-4" /></div>);
-                            } else if (isCurrent) {
-                                taskElement = (<div className="w-6 h-6 rounded-full border-2 border-slate-800 bg-white" title={task}></div>);
-                            } else {
-                                taskElement = (<div className="w-6 h-6 rounded-full border-2 border-slate-300" title={task}></div>);
-                            }
-                            return (<div key={task} onClick={(e) => { e.stopPropagation(); onTaskToggle(project.id, task); }} className="flex-1 flex justify-center p-1" role="checkbox" aria-checked={isCompleted} aria-label={`Toggle task ${task}`}>{taskElement}</div>);
-                        })}
-                    </div>
-                </div>
-                <div className={`expandable-content ${isExpanded ? 'open' : ''}`}>
-                    <ProjectDetailView project={project} onEdit={onEdit} onDelete={onDelete} onCarryOver={onCarryOver} />
-                </div>
-            </div>
-            );
-        };
-        return (<div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden"><div className="flex justify-between items-center px-6 py-3 border-b text-xs font-semibold text-slate-500 sticky top-0 bg-white/70 backdrop-blur-sm rounded-t-2xl z-10"><div className="flex-grow" style={{ flexBasis: '40%' }}>案件情報</div><div className="flex items-center space-x-2" style={{ flexBasis: '60%' }}>{TASKS.map(task => <div key={task} className="flex-1 text-center">{task}</div>)}</div></div><div className="divide-y divide-slate-200">{projects.length === 0 ? (<div className="text-center py-10 text-slate-500">条件に合う案件はありません。</div>) : (projects.map(project => <ProjectCard key={project.id} project={project} onTaskToggle={onTaskToggle} onEdit={onEdit} onDelete={onDelete} onCarryOver={onCarryOver} />))}</div></div>);
-      };
-      
-      const TargetAmountModal = ({ isOpen, onClose, currentAmount, onSave }) => {
-        const [amount, setAmount] = useState(currentAmount);
-        useEffect(() => { if(isOpen) setAmount(currentAmount) }, [isOpen, currentAmount]);
-        if (!isOpen) return null;
-        const handleSubmit = (e) => { e.preventDefault(); onSave(amount); onClose(); };
-        return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4" onClick={onClose}><form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform transition-all" onClick={e => e.stopPropagation()}><div className="p-6 border-b border-slate-200"><h3 className="text-xl font-bold text-slate-800">目標金額の登録</h3></div><div className="p-6"><Label htmlFor="targetAmount">目標金額 (税抜)</Label><input id="targetAmount" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" /></div><div className="p-6 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end items-center space-x-3"><button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">キャンセル</button><button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition">登録する</button></div></form></div>);
-      };
-      
-      const FilterAndSort = ({ filters, onFilterChange }) => {
-        const handleInputChange = (e) => { onFilterChange({ ...filters, [e.target.name]: e.target.value }); }
-        return (<div className="p-5 border border-t-0 border-slate-200 rounded-b-lg bg-slate-50 space-y-4"><div><Label htmlFor="keyword">キーワード (顧客名, 案件名)</Label><Input type="text" id="keyword" name="keyword" value={filters.keyword} onChange={handleInputChange} /></div><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"><div><Label htmlFor="status">ステータス</Label><Select id="status" name="status" value={filters.status} onChange={handleInputChange}>{STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</Select></div><div><Label htmlFor="category">顧客種別</Label><Select id="category" name="category" value={filters.category} onChange={handleInputChange}><option value="すべて">すべて</option>{CUSTOMER_CATEGORIES.map(c=><option key={c}>{c}</option>)}</Select></div><div><Label htmlFor="productType">商品種別</Label><Select id="productType" name="productType" value={filters.productType} onChange={handleInputChange}><option value="すべて">すべて</option>{PRODUCT_TYPES.map(o => <option key={o} value={o}>{o}</option>)}</Select></div><div><Label htmlFor="paymentType">支払区分</Label><Select id="paymentType" name="paymentType" value={filters.paymentType} onChange={handleInputChange}><option value="すべて">すべて</option>{PAYMENT_TYPES.map(o => <option key={o} value={o}>{o}</option>)}</Select></div></div><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"><div><Label htmlFor="setup">セットアップ</Label><Select id="setup" name="setup" value={filters.setup} onChange={handleInputChange}><option value="すべて">すべて</option>{SETUP_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</Select></div><div><Label htmlFor="maintenance">保守契約</Label><Select id="maintenance" name="maintenance" value={filters.maintenance} onChange={handleInputChange}><option value="すべて">すべて</option>{MAINTENANCE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</Select></div><div className="md:col-start-3"><Label htmlFor="sort">並び順</Label><Select id="sort" name="sort" value={filters.sort} onChange={handleInputChange}>{Object.entries(SORT_OPTIONS).map(([key, value]) => <option key={key} value={key}>{value}</option>)}</Select></div></div></div>);
-      }
-      
-      const HeaderDashboard = ({ targetAmount, setTargetAmount, currentAmount, filters, setFilters, periods, selectedPeriod, setSelectedPeriod, remainingBusinessDays }) => {
-        const [isFilterOpen, setIsFilterOpen] = useState(false);
-        const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
-        const progress = targetAmount > 0 ? Math.min((currentAmount / targetAmount) * 100, 100) : 0;
-        return (<div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 space-y-4"><div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end"><div><Label>対象期間</Label><Select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)}>{periods.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}</Select></div><div className="flex flex-col"><Label>目標金額 (税抜)</Label><div className="flex items-center gap-2"><p className="flex-grow text-lg font-semibold text-slate-800 bg-slate-100 border border-slate-300 rounded-md p-2">{targetAmount.toLocaleString()}円</p><button onClick={() => setIsTargetModalOpen(true)} className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">登録</button></div></div><div className="text-center"><p className="text-sm font-medium text-slate-600">期末までの残り営業日</p><p className="text-4xl font-bold text-blue-600">{remainingBusinessDays}<span className="text-lg font-medium ml-1">日</span></p></div></div><div className="pt-2"><div className="flex justify-between mb-1"><span className="text-sm font-medium text-slate-700">進捗 (本社発注済)</span><span className="text-sm font-medium text-slate-700">{currentAmount.toLocaleString()} / {targetAmount.toLocaleString()} 円</span></div><div className="w-full bg-slate-200 rounded-full h-2.5"><div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div></div></div><div><button onClick={() => setIsFilterOpen(!isFilterOpen)} className="w-full mt-4 flex justify-between items-center text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200"><span className="font-semibold text-slate-700">フィルター & 並び替え</span><ChevronUpIcon className={`w-5 h-5 text-slate-500 transition-transform ${isFilterOpen ? '' : 'rotate-180'}`} /></button><div className={`filter-content ${isFilterOpen ? 'open' : ''}`}><FilterAndSort filters={filters} onFilterChange={setFilters} /></div></div><TargetAmountModal isOpen={isTargetModalOpen} onClose={() => setIsTargetModalOpen(false)} currentAmount={targetAmount} onSave={setTargetAmount} /></div>);
-      };
-      
-      const App = () => {
-        const { periods, selectedPeriod, setSelectedPeriod, remainingBusinessDays } = usePeriodCalculator();
-        
-        const getInitialAppData = () => {
-          try {
-              const storedData = localStorage.getItem('orderManagementAppData');
-              if (storedData) return JSON.parse(storedData);
-          } catch (error) { console.error("Failed to parse app data from localStorage", error); }
-          
-          const initialProjects = [
-            { id: 'proj-1', projectName: '事務所PCリプレイス', clientName: '川越税理士事務所', category: '会計事務所', registrationDate: '2025-10-14', mainAmount: 100000, division: 'リプレイス', productType: 'PC', paymentType: 'COD', setup: 'あり (SCG)', maintenance: 'あり', memo: 'なし', tasks: TASKS.reduce((acc, task, index) => ({ ...acc, [task]: index < 3 }), {})},
-            { id: 'proj-2', projectName: '新規オフィスPC導入', clientName: '株式会社サンプル', category: '関与先', registrationDate: '2025-11-01', mainAmount: 3500000, division: '新規', productType: 'PC', paymentType: 'リース', setup: 'あり', maintenance: 'あり', memo: '', tasks: TASKS.reduce((acc, task, index) => ({ ...acc, [task]: index < 8 }), {})},
-          ];
+      const ProjectDetailModal = ({ isOpen, project, onClose, onEdit, onDelete, onCarryOver, onSetLost, onUndoLost }) => {
+        if (!isOpen || !project) return null;
 
-          return { [periods[0].value]: { projects: initialProjects, targetAmount: 10000000 } };
-        };
-
-        const [appData, setAppData] = useState(getInitialAppData);
-        const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
-        const [editingProject, setEditingProject] = useState(null);
-        const [filters, setFilters] = useState({
-            keyword: '', status: 'すべて', category: 'すべて', productType: 'すべて',
-            paymentType: 'すべて', setup: 'すべて', maintenance: 'すべて', sort: 'registrationDate_asc'
-        });
-
-        useEffect(() => {
-            try { localStorage.setItem('orderManagementAppData', JSON.stringify(appData)); } 
-            catch (error) { console.error("Failed to save app data to localStorage", error); }
-        }, [appData]);
-        
-        const currentPeriodData = useMemo(() => appData[selectedPeriod] || { projects: [], targetAmount: 0 }, [appData, selectedPeriod]);
-        const projects = currentPeriodData.projects;
-        const targetAmount = currentPeriodData.targetAmount;
-
-        const setTargetAmountForPeriod = (newAmount) => {
-            setAppData(prevData => ({ ...prevData, [selectedPeriod]: { ...currentPeriodData, targetAmount: newAmount } }));
-        };
-
-        const currentTotalAmount = useMemo(() => projects.reduce((sum, project) => project.tasks['本社発注'] ? sum + project.mainAmount : sum, 0), [projects]);
-
-        const filteredAndSortedProjects = useMemo(() => {
-          let filtered = [...projects];
-          if (filters.keyword) { const lowerKeyword = filters.keyword.toLowerCase(); filtered = filtered.filter(p => p.clientName.toLowerCase().includes(lowerKeyword) || p.projectName.toLowerCase().includes(lowerKeyword)); }
-          if (filters.status !== 'すべて') { filtered = filtered.filter(p => { const isComplete = TASKS.every(task => p.tasks[task]); return filters.status === '完了' ? isComplete : !isComplete; }); }
-          ['category', 'productType', 'paymentType', 'setup', 'maintenance'].forEach(key => { if (filters[key] !== 'すべて') { filtered = filtered.filter(p => p[key] === filters[key]); } });
-          const [key, order] = filters.sort.split('_');
-          filtered.sort((a, b) => { if (key === 'registrationDate') { const dateA = new Date(a.registrationDate).getTime(); const dateB = new Date(b.registrationDate).getTime(); return order === 'asc' ? dateA - dateB : dateB - dateA; } return order === 'asc' ? a[key] - b[key] : b[key] - a[key]; });
-          return filtered;
-        }, [projects, filters]);
-
-        const handleSaveProject = useCallback((projectData) => {
-            setAppData(prevAppData => {
-                const newAppData = { ...prevAppData };
-                const periodData = newAppData[selectedPeriod] || { projects: [], targetAmount: 0 };
-                let newProjects;
-                if (editingProject) {
-                    newProjects = periodData.projects.map(p => p.id === editingProject.id ? { ...projectData, tasks: p.tasks, id: p.id } : p);
-                } else {
-                    const newProject = { id: `proj-${Date.now()}`, tasks: TASKS.reduce((acc, task) => ({ ...acc, [task]: false }), {}), ...projectData };
-                    newProjects = [newProject, ...periodData.projects];
-                }
-                newAppData[selectedPeriod] = { ...periodData, projects: newProjects };
-                return newAppData;
-            });
-        }, [selectedPeriod, editingProject]);
-        
-        const handleOpenEditModal = (project) => { setEditingProject(project); setIsNewProjectModalOpen(true); };
-        const handleCloseModal = () => { setIsNewProjectModalOpen(false); setEditingProject(null); };
-
-        const handleTaskToggle = useCallback((projectId, clickedTask) => {
-            setAppData(prevAppData => {
-                const newAppData = { ...prevAppData };
-                const periodData = newAppData[selectedPeriod];
-                if (!periodData) return prevAppData;
-                const newProjects = periodData.projects.map(p => {
-                    if (p.id !== projectId) return p;
-                    const newTasks = { ...p.tasks };
-                    const taskIndex = TASKS.indexOf(clickedTask); const isChecking = !newTasks[clickedTask];
-                    if (isChecking) { for (let i = 0; i <= taskIndex; i++) newTasks[TASKS[i]] = true; } 
-                    else { for (let i = taskIndex; i < TASKS.length; i++) newTasks[TASKS[i]] = false; }
-                    return { ...p, tasks: newTasks };
-                });
-                newAppData[selectedPeriod] = { ...periodData, projects: newProjects };
-                return newAppData;
-            });
-        }, [selectedPeriod]);
-
-        const handleDeleteProject = useCallback((projectId) => {
-          if (window.confirm('この案件を削除してもよろしいですか？')) {
-            setAppData(prevAppData => {
-                const newAppData = { ...prevAppData };
-                const periodData = newAppData[selectedPeriod];
-                if (!periodData) return prevAppData;
-                const newProjects = periodData.projects.filter(p => p.id !== projectId);
-                newAppData[selectedPeriod] = { ...periodData, projects: newProjects };
-                return newAppData;
-            });
-          }
-        }, [selectedPeriod]);
-
-        const handleCarryOverProject = useCallback((projectToCarryOver) => {
-            const currentPeriodIndex = periods.findIndex(p => p.value === selectedPeriod);
-            if (currentPeriodIndex === -1 || currentPeriodIndex === periods.length - 1) {
-                alert('次の期間がないため、繰り越しできません。'); return;
-            }
-            if (window.confirm('この案件を次の期間に繰り越しますか？')) {
-                const nextPeriod = periods[currentPeriodIndex + 1];
-                const nextPeriodStartDate = new Date(periods[currentPeriodIndex].endDate);
-                nextPeriodStartDate.setDate(nextPeriodStartDate.getDate() + 1);
-                const carriedOverProject = { ...projectToCarryOver, registrationDate: nextPeriodStartDate.toISOString().split('T')[0] };
-                setAppData(prevAppData => {
-                    const newAppData = { ...prevAppData };
-                    const currentPeriodData = newAppData[selectedPeriod];
-                    newAppData[selectedPeriod] = { ...currentPeriodData, projects: currentPeriodData.projects.filter(p => p.id !== projectToCarryOver.id) };
-                    const nextPeriodData = newAppData[nextPeriod.value] || { projects: [], targetAmount: 0 };
-                    newAppData[nextPeriod.value] = { ...nextPeriodData, projects: [carriedOverProject, ...nextPeriodData.projects] };
-                    return newAppData;
-                });
-                alert(`案件「${projectToCarryOver.projectName}」を${nextPeriod.label}に繰り越しました。`);
-            }
-        }, [selectedPeriod, periods]);
+        const setupAmount = project.setupAmount || 0;
+        const totalAmount = project.mainAmount + setupAmount;
 
         return (
-            <div className="min-h-screen p-4 sm:p-6 lg:p-8">
-                <div className="max-w-7xl mx-auto space-y-8">
-                    <header className="flex justify-between items-center flex-wrap gap-4">
-                        <h1 className="text-3xl font-bold text-slate-900">受注・タスク管理ツール</h1>
-                        <div className="flex items-center gap-2">
-                           <button className="px-3 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">データインポート</button>
-                           <button className="px-3 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">データエクスポート</button>
-                           <button onClick={() => setIsNewProjectModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition"><PlusIcon className="w-5 h-5" />新規案件を登録</button>
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4" onClick={onClose}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl transform transition-all" onClick={e => e.stopPropagation()}>
+                    <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+                        <h3 className="text-xl font-bold text-slate-800">案件詳細</h3>
+                        <button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"><XIcon className="w-5 h-5" /></button>
+                    </div>
+                    <div className="p-6 max-h-[70vh] overflow-y-auto">
+                        <div className="mb-6 pb-6 border-b border-slate-200">
+                             <p className="text-xs text-slate-500">顧客名</p>
+                             <h4 className="text-2xl font-bold text-slate-900">{project.clientName}</h4>
+                             <p className="text-xs text-slate-500 mt-4">案件名</p>
+                             <p className="text-lg text-slate-700 mt-1">{project.projectName}</p>
                         </div>
-                    </header>
-                    <main className="space-y-8">
-                        <HeaderDashboard targetAmount={targetAmount} setTargetAmount={setTargetAmountForPeriod} currentAmount={currentTotalAmount} filters={filters} setFilters={setFilters} periods={periods} selectedPeriod={selectedPeriod} setSelectedPeriod={setSelectedPeriod} remainingBusinessDays={remainingBusinessDays} />
-                        <ProjectTable projects={filteredAndSortedProjects} onTaskToggle={handleTaskToggle} onEdit={handleOpenEditModal} onDelete={handleDeleteProject} onCarryOver={handleCarryOverProject} />
-                    </main>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
+                            <DetailItem label="顧客種別" value={project.category} />
+                            <DetailItem label="区分" value={project.division} />
+                            <DetailItem label="商品種別" value={project.productType} />
+                            <DetailItem label="支払区分" value={project.paymentType} />
+                            <DetailItem label="セットアップ" value={project.setup} />
+                            <DetailItem label="保守契約" value={project.maintenance} />
+                            <DetailItem label="登録日" value={new Date(project.registrationDate).toLocaleDateString('ja-JP')} />
+                            <div className="flex flex-col">
+                               <dt className="text-xs text-slate-500">金額内訳</dt>
+                               <dd className="text-sm text-slate-900 mt-1">
+                                    <div>本体: {project.mainAmount.toLocaleString()}円</div>
+                                    <div>セットアップ: {setupAmount.toLocaleString()}円</div>
+                                    <div className="font-bold border-t border-slate-200 mt-1 pt-1">合計: {totalAmount.toLocaleString()}円</div>
+                               </dd>
+                            </div>
+                            <DetailItem label="メモ" value={project.memo} className="col-span-2 md:col-span-3" />
+                        </div>
+                    </div>
+                     <div className="p-6 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex items-center gap-4 text-slate-600">
+                        <button onClick={() => { onEdit(project); onClose(); }} className="flex items-center gap-2 hover:text-blue-600"><EditIcon className="w-5 h-5" /><span>編集</span></button>
+                        {project.isLost ? (
+                            <button onClick={() => onUndoLost(project.id)} className="flex items-center gap-2 hover:text-green-600"><RefreshIcon className="w-5 h-5" /><span>失注を取り消す</span></button>
+                        ) : (
+                            <button onClick={() => onSetLost(project.id)} className="flex items-center gap-2 hover:text-orange-600"><NoSymbolIcon className="w-5 h-5" /><span>失注</span></button>
+                        )}
+                        <button onClick={() => onDelete(project.id)} className="flex items-center gap-2 hover:text-red-600"><TrashIcon className="w-5 h-5" /><span>削除</span></button>
+                        <button onClick={() => onCarryOver(project)} className="flex items-center gap-2 hover:text-green-600"><ArrowCircleRightIcon className="w-5 h-5" /><span>繰り越し</span></button>
+                        <div className="flex-grow"></div>
+                        <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">閉じる</button>
+                    </div>
                 </div>
-                <NewProjectModal isOpen={isNewProjectModalOpen} onClose={handleCloseModal} onSaveProject={handleSaveProject} editingProject={editingProject} />
             </div>
         );
       };
 
-      const root = ReactDOM.createRoot(document.getElementById('root'));
+      const TaskStatus = ({ status, onClick, disabled }) => {
+          const baseClasses = "w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out";
+          const interactiveClasses = disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400';
+
+          switch (status) {
+              case 'completed':
+                  return (
+                      <button onClick={onClick} disabled={disabled} title="完了" className={`${baseClasses} ${interactiveClasses} bg-blue-500 shadow`}>
+                          <CheckIcon className="w-4 h-4 text-white" />
+                      </button>
+                  );
+              case 'next':
+                  return (
+                      <button onClick={onClick} disabled={disabled} title="次のタスク" className={`${baseClasses} ${interactiveClasses} bg-white border-2 border-blue-500 shadow`}>
+                           <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse"></div>
+                      </button>
+                  );
+              case 'pending':
+                  return (
+                      <button onClick={onClick} disabled={disabled} title="未完了" className={`${baseClasses} ${interactiveClasses} bg-slate-200 hover:bg-slate-300`}></button>
+                  );
+              case 'skipped':
+                   return (
+                      <div title="対象外" className={`${baseClasses} bg-slate-100`}>
+                          <div className="w-4 h-0.5 bg-slate-400"></div>
+                      </div>
+                  );
+              default:
+                  return <div className={baseClasses}></div>;
+          }
+      };
+      
+      const HankoStamp = ({ status }) => {
+        if (!status) return <div className="w-10 h-10 flex-shrink-0"></div>;
+
+        const styles = {
+            '受注': 'text-red-600 border-red-600',
+            '完了': 'text-blue-600 border-blue-600',
+            '失注': 'text-slate-500 border-slate-500',
+        };
+        
+        return (
+            <div className={`flex-shrink-0 flex items-center justify-center w-10 h-10 border-2 rounded-full font-serif font-bold text-sm transform -rotate-12 ${styles[status]}`}>
+                {status}
+            </div>
+        );
+      };
+
+      const ProjectCard = ({ project, onViewDetails, onTaskToggle }) => {
+          const totalAmount = project.mainAmount + (project.setupAmount || 0);
+          
+          const visibleTasks = useMemo(() => getVisibleTasks(project), [project]);
+          const completedVisibleTasks = visibleTasks.filter(task => project.tasks[task]);
+          
+          const isLost = project.isLost;
+          const isCompleted = !isLost && completedVisibleTasks.length === visibleTasks.length;
+          const isOrdered = !isLost && !isCompleted && project.tasks['本社発注'];
+          const nextVisibleTask = !isLost && !isCompleted ? visibleTasks.find(task => !project.tasks[task]) : null;
+
+          let status = null;
+          if (isLost) status = '失注';
+          else if (isCompleted) status = '完了';
+          else if (isOrdered) status = '受注';
+          
+          const lastVisibleTaskIndex = TASKS.indexOf(visibleTasks[visibleTasks.length - 1]);
+
+          return (
+            <div className={`grid grid-cols-[minmax(0,_3.5fr)_minmax(0,_1fr)_minmax(0,_1.2fr)_repeat(10,minmax(36px,_1fr))_minmax(0,_1fr)] items-center text-sm hover:bg-slate-50 transition-colors duration-200 ${project.isLost ? 'opacity-60 grayscale' : ''}`}>
+                <div className="p-2 pl-4 flex items-center gap-3 min-w-0">
+                    <HankoStamp status={status} />
+                    <div className="flex-grow min-w-0">
+                        <h3 className="font-bold text-slate-900 truncate text-base">{project.clientName}</h3>
+                        <p className="text-slate-500 text-xs mt-1 truncate">{project.projectName}</p>
+                        {nextVisibleTask && (
+                            <p className="text-orange-600 font-semibold text-xs mt-1">{nextVisibleTask}未了</p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-2 text-slate-600 text-center">{new Date(project.registrationDate).toLocaleDateString('ja-JP')}</div>
+                <div className="p-2 font-semibold text-slate-800 text-right">{totalAmount.toLocaleString()}円</div>
+
+                {TASKS.map((task, index) => {
+                    const isVisible = visibleTasks.includes(task);
+                    const isCompleted = project.tasks[task];
+                    const isNext = task === nextVisibleTask;
+                    
+                    const prevTaskName = index > 0 ? TASKS[index - 1] : null;
+                    const isPrevTaskVisible = prevTaskName && visibleTasks.includes(prevTaskName);
+                    const isPrevTaskCompleted = prevTaskName && project.tasks[prevTaskName];
+
+                    const isLineBlue = isVisible && isPrevTaskVisible && isCompleted && isPrevTaskCompleted;
+                    const showLine = index > 0 && index <= lastVisibleTaskIndex && isVisible;
+
+                    let taskStatus = 'pending';
+                    if (!isVisible) taskStatus = 'skipped';
+                    else if (isCompleted) taskStatus = 'completed';
+                    else if (isNext) taskStatus = 'next';
+                    
+                    const isDisabled = project.isLost || (taskStatus === 'pending');
+
+                    return (
+                        <div key={task} className="flex justify-center items-center relative h-full">
+                            {showLine && (
+                                <div className={`absolute top-1/2 -translate-y-1/2 left-0 w-full h-0.5 ${isLineBlue ? 'bg-blue-500' : 'bg-slate-200'}`}></div>
+                            )}
+                            <div className="relative z-10">
+                                <TaskStatus
+                                    status={taskStatus}
+                                    onClick={() => onTaskToggle(project.id, task)}
+                                    disabled={isDisabled}
+                                />
+                            </div>
+                        </div>
+                    );
+                })}
+                
+                <div className="p-2 text-center">
+                    <button onClick={() => onViewDetails(project)} className="p-2 text-slate-500 hover:bg-slate-200 hover:text-slate-800 rounded-full transition-colors" title="詳細を表示">
+                        <DocumentTextIcon className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+          );
+      };
+
+      const ProjectTable = ({ projects, onViewDetails, onTaskToggle }) => {
+        return (
+            <div className="bg-white shadow-lg rounded-xl overflow-x-auto mt-6">
+                <div className="w-full min-w-[1160px]">
+                    <div className="sticky-header border-b-2 border-slate-300 text-xs font-bold text-slate-600">
+                         <div className="grid grid-cols-[minmax(0,_3.5fr)_minmax(0,_1fr)_minmax(0,_1.2fr)_repeat(10,minmax(36px,_1fr))_minmax(0,_1fr)] items-center">
+                            <div className="p-2 pl-4">顧客・案件名</div>
+                            <div className="p-2 text-center">登録日</div>
+                            <div className="p-2 text-right">金額 (総額)</div>
+                            {TASKS.map(task => (
+                                <div key={task} className="p-1 text-center text-[10px] leading-tight break-words">{task}</div>
+                            ))}
+                            <div className="p-2 text-center">詳細</div>
+                        </div>
+                    </div>
+                    <div className="divide-y divide-slate-200">
+                        {projects.length > 0 ? (
+                            projects.map(project => <ProjectCard key={project.id} {...{ project, onViewDetails, onTaskToggle }} />)
+                        ) : (
+                             <div className="p-12 text-center text-slate-500">
+                                <h3 className="text-lg font-semibold">案件がありません</h3>
+                                <p className="mt-2 text-sm">右上の「新規案件」ボタンから新しい案件を登録してください。</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+      };
+
+      const DashboardCard = ({ title, value, subtext, colorClass = "text-slate-900" }) => (
+          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+              <div className="text-sm text-slate-500">{title}</div>
+              <div className={`text-3xl font-bold mt-1 ${colorClass}`}>{value}</div>
+              {subtext && <div className="text-xs text-slate-400 mt-1">{subtext}</div>}
+          </div>
+      );
+
+      const Dashboard = ({ projects, goalAmount, setGoalAmount, periodData }) => {
+          const { periods, selectedPeriod, setSelectedPeriod, remainingBusinessDays } = periodData;
+          const [isEditingGoal, setIsEditingGoal] = useState(false);
+          const [tempGoal, setTempGoal] = useState(goalAmount);
+          const [showSuccess, setShowSuccess] = useState(false);
+
+          const stats = useMemo(() => {
+              const allNonLostProjects = projects.filter(p => !p.isLost);
+              const totalAmount = allNonLostProjects.reduce((sum, p) => sum + p.mainAmount + (p.setupAmount || 0), 0);
+              const orderedProjects = allNonLostProjects.filter(p => p.tasks['本社発注']);
+              const orderedAmount = orderedProjects.reduce((sum, p) => sum + p.mainAmount + (p.setupAmount || 0), 0);
+              const achievementRate = goalAmount > 0 ? (orderedAmount / goalAmount) * 100 : 0;
+              return { totalAmount, orderedAmount, achievementRate };
+          }, [projects, goalAmount]);
+          
+          const handleSaveGoal = () => {
+              const newGoal = Number(tempGoal) || 0;
+              setGoalAmount(newGoal);
+              setIsEditingGoal(false);
+              setShowSuccess(true);
+              setTimeout(() => setShowSuccess(false), 3000);
+          }
+          
+          useEffect(() => {
+              setTempGoal(goalAmount);
+          }, [goalAmount]);
+
+          return (
+            <div className="bg-slate-50/50 shadow-lg rounded-xl p-6 mb-6">
+                <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
+                    <div>
+                        <Label htmlFor="periodSelect">対象期間</Label>
+                        <Select id="periodSelect" value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} className="w-full sm:w-auto">
+                            {periods.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                        </Select>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                        <div className="text-sm text-slate-500">残り営業日</div>
+                        <div className="text-2xl font-bold mt-1 text-slate-900">{remainingBusinessDays}<span className="text-base ml-1">日</span></div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <DashboardCard title="対象総額" value={`${stats.totalAmount.toLocaleString()}円`} subtext="失注を除く全案件の合計" />
+                     <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative">
+                        {showSuccess && <div className="absolute top-2 right-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded goal-success-toast">目標金額を登録しました！</div>}
+                        <div className="text-sm text-slate-500">目標金額</div>
+                        {isEditingGoal ? (
+                          <div className="mt-1">
+                            <input type="number" value={tempGoal} onChange={e => setTempGoal(e.target.value)} className="block w-full px-2 py-1 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+                            <div className="flex gap-2 mt-2">
+                              <button onClick={handleSaveGoal} className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">保存</button>
+                              <button onClick={() => { setIsEditingGoal(false); setTempGoal(goalAmount); }} className="px-3 py-1 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-300 rounded-md hover:bg-slate-200">キャンセル</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-end">
+                            <div className="text-3xl font-bold mt-1 text-slate-900">{goalAmount.toLocaleString()}<span className="text-lg ml-1">円</span></div>
+                            <button onClick={() => setIsEditingGoal(true)} className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100">登録</button>
+                          </div>
+                        )}
+                    </div>
+                    <DashboardCard title="受注金額" value={`${stats.orderedAmount.toLocaleString()}円`} colorClass="text-blue-600" subtext="失注を除く全受注案件の合計" />
+                    <DashboardCard title="目標達成率" value={`${stats.achievementRate.toFixed(1)}%`} colorClass="text-blue-600" />
+                </div>
+            </div>
+          );
+      };
+
+      const App = () => {
+          const [projects, setProjects] = useState(() => {
+              try {
+                  const savedProjects = localStorage.getItem('projects');
+                  return savedProjects ? JSON.parse(savedProjects) : [];
+              } catch (error) {
+                  console.error("Error loading projects from localStorage", error); return [];
+              }
+          });
+          const [goalAmount, setGoalAmount] = useState(() => {
+              try {
+                const savedGoal = localStorage.getItem('goalAmount');
+                return savedGoal ? Number(JSON.parse(savedGoal)) : 10000000;
+              } catch (error) {
+                  console.error("Error loading goal amount from localStorage", error); return 10000000;
+              }
+          });
+          const [isModalOpen, setIsModalOpen] = useState(false);
+          const [editingProject, setEditingProject] = useState(null);
+          const [viewingProject, setViewingProject] = useState(null);
+          const initialFilters = { keyword: '', status: 'すべて', customerCategory: 'すべて' };
+          const [filters, setFilters] = useState(initialFilters);
+          const [sortKey, setSortKey] = useState('registrationDate_desc');
+          const [isFilterVisible, setIsFilterVisible] = useState(false);
+          const [confirmation, setConfirmation] = useState({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+
+          const periodData = usePeriodCalculator();
+
+          useEffect(() => {
+              try {
+                  localStorage.setItem('projects', JSON.stringify(projects));
+              } catch (error) { console.error("Error saving projects to localStorage", error); }
+          }, [projects]);
+
+          useEffect(() => {
+              try {
+                  localStorage.setItem('goalAmount', JSON.stringify(goalAmount));
+              } catch (error) { console.error("Error saving goal amount to localStorage", error); }
+          }, [goalAmount]);
+          
+          const handleSaveProject = (projectData) => {
+              setProjects(prevProjects => {
+                  if (projectData.id) { // Update existing
+                      return prevProjects.map(p => p.id === projectData.id ? { ...p, ...projectData } : p);
+                  } else { // Add new
+                      const newProject = { 
+                          ...projectData, 
+                          id: Date.now(), 
+                          tasks: TASKS.reduce((acc, task) => ({...acc, [task]: false}), {}) 
+                      };
+                      return [...prevProjects, newProject];
+                  }
+              });
+              setEditingProject(null);
+          };
+
+          const handleEditProject = (project) => {
+              setEditingProject(project);
+              setIsModalOpen(true);
+          };
+
+          const handleDeleteProject = (projectId) => {
+              setConfirmation({
+                  isOpen: true, title: '案件の削除', message: 'この案件を完全に削除します。この操作は元に戻せません。よろしいですか？',
+                  onConfirm: () => {
+                      setProjects(prev => prev.filter(p => p.id !== projectId));
+                      setViewingProject(null);
+                      setConfirmation({ isOpen: false });
+                  },
+                  onCancel: () => setConfirmation({ isOpen: false })
+              });
+          };
+          
+          const handleSetLost = (projectId) => {
+              setConfirmation({
+                  isOpen: true, title: '失注の確認', message: 'この案件を「失注」としてマークしますか？タスクの変更ができなくなります。',
+                  onConfirm: () => {
+                      setProjects(prev => prev.map(p => p.id === projectId ? {...p, isLost: true} : p));
+                      setViewingProject(prev => prev && prev.id === projectId ? {...prev, isLost: true} : prev);
+                      setConfirmation({ isOpen: false });
+                  },
+                  onCancel: () => setConfirmation({ isOpen: false })
+              });
+          };
+
+          const handleUndoLost = (projectId) => {
+              setConfirmation({
+                  isOpen: true, title: '失注の取り消し', message: 'この案件を「失注」から戻しますか？タスクの変更が可能になります。',
+                  onConfirm: () => {
+                      setProjects(prev => prev.map(p => p.id === projectId ? {...p, isLost: false} : p));
+                      setViewingProject(null);
+                      setConfirmation({ isOpen: false });
+                  },
+                  onCancel: () => setConfirmation({ isOpen: false })
+              });
+          };
+
+          const handleTaskToggle = (projectId, taskName) => {
+              setProjects(prevProjects => prevProjects.map(p => {
+                  if (p.id === projectId) {
+                      const newTasks = { ...p.tasks };
+                      const isUnchecking = newTasks[taskName];
+
+                      if (isUnchecking) {
+                          const visibleTasks = getVisibleTasks(p);
+                          const taskIndex = visibleTasks.indexOf(taskName);
+                          if (taskIndex !== -1) {
+                              for (let i = taskIndex; i < visibleTasks.length; i++) {
+                                  newTasks[visibleTasks[i]] = false;
+                              }
+                          }
+                      } else {
+                          newTasks[taskName] = true;
+                      }
+                      return { ...p, tasks: newTasks };
+                  }
+                  return p;
+              }));
+          };
+
+          const confirmAndToggleTask = (projectId, taskName) => {
+              const project = projects.find(p => p.id === projectId);
+              if (!project || project.isLost) return;
+
+              const isUnchecking = project.tasks[taskName];
+              if (!isUnchecking) {
+                  handleTaskToggle(projectId, taskName);
+                  return;
+              }
+              
+              const visibleTasks = getVisibleTasks(project);
+              const isCompleted = visibleTasks.every(task => project.tasks[task]);
+              const isOrdered = project.tasks['本社発注'];
+
+              let confirmationMessage = '';
+              if (isCompleted) {
+                  confirmationMessage = 'この案件は「完了」ステータスです。タスクを未完了に戻しますか？後続のタスクも全て未完了になります。';
+              } else if (isOrdered && taskName === '本社発注') {
+                  confirmationMessage = 'この案件は「受注」ステータスです。「本社発注」を未完了に戻しますか？後続のタスクも全て未完了になります。';
+              } else if (isUnchecking) {
+                   confirmationMessage = `タスク「${taskName}」を未完了に戻しますか？後続のタスクも全て未完了になります。`;
+              }
+
+              if (confirmationMessage) {
+                  setConfirmation({
+                      isOpen: true, title: 'タスクの更新確認', message: confirmationMessage,
+                      onConfirm: () => {
+                          handleTaskToggle(projectId, taskName);
+                          setConfirmation({ isOpen: false });
+                      },
+                      onCancel: () => setConfirmation({ isOpen: false })
+                  });
+              } else {
+                  handleTaskToggle(projectId, taskName);
+              }
+          };
+          
+          const handleCarryOver = (project) => {
+              setConfirmation({
+                isOpen: true, title: '案件の繰越', message: `${project.clientName}の案件をコピーして繰り越しますか？`,
+                onConfirm: () => {
+                    const newProject = {
+                        ...project, id: Date.now(), registrationDate: new Date().toISOString().split('T')[0],
+                        tasks: TASKS.reduce((acc, task) => ({...acc, [task]: false}), {}),
+                        isLost: false, memo: `(繰越元: ${project.registrationDate} ${project.projectName})\n${project.memo}`
+                    };
+                    setProjects(prev => [...prev, newProject]);
+                    setConfirmation({isOpen: false});
+                    setViewingProject(null);
+                },
+                onCancel: () => setConfirmation({isOpen: false})
+              });
+          };
+
+          const handleFilterChange = (e) => {
+              setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
+          };
+
+          const handleResetFilters = () => {
+              setFilters(initialFilters);
+              setSortKey('registrationDate_desc');
+          };
+
+          const filteredAndSortedProjects = useMemo(() => {
+              let result = projects.filter(p => {
+                    const keywordMatch = filters.keyword === '' || 
+                        p.clientName.toLowerCase().includes(filters.keyword.toLowerCase()) || 
+                        p.projectName.toLowerCase().includes(filters.keyword.toLowerCase());
+
+                    const visibleTasks = getVisibleTasks(p);
+                    const isCompleted = visibleTasks.every(task => p.tasks[task]);
+
+                    const statusMatch = filters.status === 'すべて' ? true :
+                        filters.status === '受注済み' ? p.tasks['本社発注'] && !isCompleted && !p.isLost :
+                        filters.status === '完了済み' ? isCompleted && !p.isLost :
+                        filters.status === '失注' ? p.isLost : false;
+                    
+                    const categoryMatch = filters.customerCategory === 'すべて' || p.category === filters.customerCategory;
+                    
+                    return keywordMatch && statusMatch && categoryMatch;
+              });
+
+              const [key, order] = sortKey.split('_');
+              result.sort((a, b) => {
+                  const valA = key === 'mainAmount' ? a.mainAmount + (a.setupAmount || 0) : a[key];
+                  const valB = key === 'mainAmount' ? b.mainAmount + (b.setupAmount || 0) : b[key];
+                  if (valA < valB) return order === 'asc' ? -1 : 1;
+                  if (valA > valB) return order === 'asc' ? 1 : -1;
+                  return 0;
+              });
+              return result;
+          }, [projects, filters, sortKey]);
+
+          return (
+              <div className="container mx-auto p-4 md:p-8 max-w-full">
+                  <header className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                      <h1 className="text-3xl font-bold text-slate-900">受発注管理ツール</h1>
+                      <button onClick={() => { setEditingProject(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                          <PlusIcon className="w-5 h-5" />
+                          <span>新規案件</span>
+                      </button>
+                  </header>
+                  
+                  <Dashboard projects={projects} goalAmount={goalAmount} setGoalAmount={setGoalAmount} periodData={periodData} />
+
+                  <div className="bg-white shadow-lg rounded-xl">
+                      <button onClick={() => setIsFilterVisible(!isFilterVisible)} className="w-full flex justify-between items-center font-bold text-lg text-slate-800 p-6">
+                          <span>フィルター & 並び替え</span>
+                          <ChevronUpIcon className={`w-6 h-6 transform transition-transform ${isFilterVisible ? '' : 'rotate-180'}`} />
+                      </button>
+                      <div className={`filter-content ${isFilterVisible ? 'open' : ''}`}>
+                          <div className="p-6 pt-0 border-t border-slate-200">
+                            <div className="space-y-4 pt-6">
+                                <div>
+                                    <Label htmlFor="keywordFilter">キーワード (顧客名, 案件名)</Label>
+                                    <Input type="text" id="keywordFilter" name="keyword" value={filters.keyword} onChange={handleFilterChange} placeholder="キーワードで検索..." />
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div><Label>ステータス</Label><Select name="status" value={filters.status} onChange={handleFilterChange}>{STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}</Select></div>
+                                    <div><Label>顧客種別</Label><Select name="customerCategory" value={filters.customerCategory} onChange={handleFilterChange}><option value="すべて">すべて</option>{CUSTOMER_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</Select></div>
+                                    <div><Label>並び順</Label><Select name="sortKey" value={sortKey} onChange={e => setSortKey(e.target.value)}>{Object.entries(SORT_OPTIONS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></div>
+                                    <div className="flex items-end">
+                                      <button onClick={handleResetFilters} className="w-full px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">リセット</button>
+                                    </div>
+                                </div>
+                            </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <ProjectTable 
+                      projects={filteredAndSortedProjects}
+                      onViewDetails={setViewingProject}
+                      onTaskToggle={confirmAndToggleTask}
+                  />
+
+                  <NewProjectModal 
+                      isOpen={isModalOpen}
+                      onClose={() => setIsModalOpen(false)}
+                      onSaveProject={handleSaveProject}
+                      editingProject={editingProject}
+                  />
+                  
+                  <ProjectDetailModal
+                      isOpen={!!viewingProject}
+                      project={viewingProject}
+                      onClose={() => setViewingProject(null)}
+                      onEdit={handleEditProject}
+                      onDelete={handleDeleteProject}
+                      onCarryOver={handleCarryOver}
+                      onSetLost={handleSetLost}
+                      onUndoLost={handleUndoLost}
+                  />
+
+                   <ConfirmationModal 
+                      isOpen={confirmation.isOpen}
+                      title={confirmation.title}
+                      message={confirmation.message}
+                      onConfirm={confirmation.onConfirm}
+                      onCancel={confirmation.onCancel}
+                   />
+              </div>
+          );
+      };
+
+      const container = document.getElementById('root');
+      const root = ReactDOM.createRoot(container);
       root.render(<App />);
     </script>
 <script type="module" src="/index.tsx"></script>
