@@ -123,10 +123,10 @@
 
           const allPeriods = useMemo(generatePeriods, []);
           
-          const getCurrentPeriod = () => {
+          const getCurrentPeriod = useCallback(() => {
               const now = new Date();
               return allPeriods.find(p => now >= p.startDate && now <= p.endDate) || allPeriods[0];
-          }
+          }, [allPeriods]);
 
           const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod().value);
           
@@ -151,7 +151,7 @@
               return period ? calculateBusinessDays(period.endDate) : 0;
           }, [selectedPeriod, allPeriods, calculateBusinessDays]);
 
-          return { periods: allPeriods, selectedPeriod, setSelectedPeriod, remainingBusinessDays };
+          return { periods: allPeriods, selectedPeriod, setSelectedPeriod, remainingBusinessDays, getCurrentPeriod };
       }
 
       // --- COMPONENTS ---
@@ -400,9 +400,7 @@
                   );
               case 'skipped':
                    return (
-                      <div title="対象外" className={`${baseClasses} bg-slate-100`}>
-                          <div className="w-4 h-0.5 bg-slate-400"></div>
-                      </div>
+                      <div title="対象外" className={`${baseClasses}`}></div>
                   );
               default:
                   return <div className={baseClasses}></div>;
@@ -440,8 +438,6 @@
           if (isLost) status = '失注';
           else if (isCompleted) status = '完了';
           else if (isOrdered) status = '受注';
-          
-          const lastVisibleTaskIndex = TASKS.indexOf(visibleTasks[visibleTasks.length - 1]);
 
           return (
             <div className={`grid grid-cols-[minmax(0,_3.5fr)_minmax(0,_1fr)_minmax(0,_1.2fr)_repeat(10,minmax(36px,_1fr))_minmax(0,_1fr)] items-center text-sm hover:bg-slate-50 transition-colors duration-200 ${project.isLost ? 'opacity-60 grayscale' : ''}`}>
@@ -464,32 +460,20 @@
                     const isCompleted = project.tasks[task];
                     const isNext = task === nextVisibleTask;
                     
-                    const prevTaskName = index > 0 ? TASKS[index - 1] : null;
-                    const isPrevTaskVisible = prevTaskName && visibleTasks.includes(prevTaskName);
-                    const isPrevTaskCompleted = prevTaskName && project.tasks[prevTaskName];
-
-                    const isLineBlue = isVisible && isPrevTaskVisible && isCompleted && isPrevTaskCompleted;
-                    const showLine = index > 0 && index <= lastVisibleTaskIndex && isVisible;
-
                     let taskStatus = 'pending';
                     if (!isVisible) taskStatus = 'skipped';
                     else if (isCompleted) taskStatus = 'completed';
                     else if (isNext) taskStatus = 'next';
                     
-                    const isDisabled = project.isLost || (taskStatus === 'pending');
+                    const isDisabled = project.isLost;
 
                     return (
-                        <div key={task} className="flex justify-center items-center relative h-full">
-                            {showLine && (
-                                <div className={`absolute top-1/2 -translate-y-1/2 left-0 w-full h-0.5 ${isLineBlue ? 'bg-blue-500' : 'bg-slate-200'}`}></div>
-                            )}
-                            <div className="relative z-10">
-                                <TaskStatus
-                                    status={taskStatus}
-                                    onClick={() => onTaskToggle(project.id, task)}
-                                    disabled={isDisabled}
-                                />
-                            </div>
+                        <div key={task} className="flex justify-center items-center h-full">
+                            <TaskStatus
+                                status={taskStatus}
+                                onClick={() => onTaskToggle(project.id, task)}
+                                disabled={isDisabled}
+                            />
                         </div>
                     );
                 })}
@@ -534,12 +518,48 @@
       };
 
       const DashboardCard = ({ title, value, subtext, colorClass = "text-slate-900" }) => (
-          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm h-full flex flex-col">
               <div className="text-sm text-slate-500">{title}</div>
               <div className={`text-3xl font-bold mt-1 ${colorClass}`}>{value}</div>
               {subtext && <div className="text-xs text-slate-400 mt-1">{subtext}</div>}
           </div>
       );
+
+      const AchievementStamp = () => (
+          <div className="absolute -top-3 -right-3 z-10">
+              <div className="flex items-center justify-center w-20 h-20 border-4 border-red-500 bg-white/70 backdrop-blur-sm rounded-full font-serif font-bold text-red-500 transform rotate-12">
+                  <span className="text-3xl">達成</span>
+              </div>
+          </div>
+      );
+
+      const ProgressBar = ({ percentage }) => {
+        const cappedPercentage = Math.min(percentage, 100);
+        const colorClasses = [
+            'bg-red-500',    // 0-9%
+            'bg-orange-500', // 10-19%
+            'bg-amber-500',  // 20-29%
+            'bg-yellow-500', // 30-39%
+            'bg-lime-500',   // 40-49%
+            'bg-green-500',  // 50-59%
+            'bg-emerald-500',// 60-69%
+            'bg-teal-500',   // 70-79%
+            'bg-cyan-500',   // 80-89%
+            'bg-sky-500',    // 90-99%
+            'bg-blue-600',   // 100%
+        ];
+        const colorIndex = Math.floor(cappedPercentage / 10);
+        const colorClass = colorClasses[Math.min(colorIndex, colorClasses.length - 1)];
+
+        return (
+            <div className="w-full bg-slate-200 rounded-full h-4">
+                <div
+                    className={`h-4 rounded-full transition-all duration-500 ease-out ${colorClass}`}
+                    style={{ width: `${cappedPercentage}%` }}
+                ></div>
+            </div>
+        );
+      };
 
       const Dashboard = ({ projects, goalAmount, setGoalAmount, periodData }) => {
           const { periods, selectedPeriod, setSelectedPeriod, remainingBusinessDays } = periodData;
@@ -553,7 +573,7 @@
               const orderedProjects = allNonLostProjects.filter(p => p.tasks['本社発注']);
               const orderedAmount = orderedProjects.reduce((sum, p) => sum + p.mainAmount + (p.setupAmount || 0), 0);
               const achievementRate = goalAmount > 0 ? (orderedAmount / goalAmount) * 100 : 0;
-              return { totalAmount, orderedAmount, achievementRate };
+              return { totalAmount, orderedAmount, achievementRate, orderedProjectsCount: orderedProjects.length, totalProjectsCount: allNonLostProjects.length };
           }, [projects, goalAmount]);
           
           const handleSaveGoal = () => {
@@ -570,12 +590,14 @@
 
           return (
             <div className="bg-slate-50/50 shadow-lg rounded-xl p-6 mb-6">
-                <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
-                    <div>
-                        <Label htmlFor="periodSelect">対象期間</Label>
-                        <Select id="periodSelect" value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} className="w-full sm:w-auto">
-                            {periods.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                        </Select>
+                <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                     <div className="flex items-end gap-6 flex-wrap">
+                        <div>
+                            <Label htmlFor="periodSelect">対象期間</Label>
+                            <Select id="periodSelect" value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} className="w-full sm:w-auto">
+                                {periods.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                            </Select>
+                        </div>
                     </div>
                     <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
                         <div className="text-sm text-slate-500">残り営業日</div>
@@ -584,8 +606,8 @@
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <DashboardCard title="対象総額" value={`${stats.totalAmount.toLocaleString()}円`} subtext="失注を除く全案件の合計" />
-                     <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative">
+                    <DashboardCard title="対象総額" value={`${stats.totalAmount.toLocaleString()}円`} subtext={`${stats.totalProjectsCount}件`} />
+                     <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative h-full">
                         {showSuccess && <div className="absolute top-2 right-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded goal-success-toast">目標金額を登録しました！</div>}
                         <div className="text-sm text-slate-500">目標金額</div>
                         {isEditingGoal ? (
@@ -603,55 +625,108 @@
                           </div>
                         )}
                     </div>
-                    <DashboardCard title="受注金額" value={`${stats.orderedAmount.toLocaleString()}円`} colorClass="text-blue-600" subtext="失注を除く全受注案件の合計" />
-                    <DashboardCard title="目標達成率" value={`${stats.achievementRate.toFixed(1)}%`} colorClass="text-blue-600" />
+                    <DashboardCard title="受注金額" value={`${stats.orderedAmount.toLocaleString()}円`} colorClass="text-blue-600" subtext={`${stats.orderedProjectsCount}件`} />
+                    <div className="relative h-full">
+                        <DashboardCard title="目標達成率" value={`${stats.achievementRate.toFixed(1)}%`} colorClass="text-blue-600" />
+                        {stats.achievementRate >= 100 && <AchievementStamp />}
+                    </div>
+                </div>
+                <div className="mt-6">
+                    <div className="flex justify-end items-baseline text-sm font-medium text-slate-600 mb-1">
+                        <span>{stats.orderedAmount.toLocaleString()}円</span>
+                        <span className="text-slate-400 mx-1">/</span>
+                        <span>{goalAmount.toLocaleString()}円</span>
+                    </div>
+                    <ProgressBar percentage={stats.achievementRate} />
                 </div>
             </div>
           );
       };
 
       const App = () => {
-          const [projects, setProjects] = useState(() => {
+          const periodData = usePeriodCalculator();
+          const { selectedPeriod, setSelectedPeriod, getCurrentPeriod } = periodData;
+
+          const [allData, setAllData] = useState(() => {
               try {
-                  const savedProjects = localStorage.getItem('projects');
-                  return savedProjects ? JSON.parse(savedProjects) : [];
+                  const savedData = localStorage.getItem('allPeriodData');
+                  return savedData ? JSON.parse(savedData) : {};
               } catch (error) {
-                  console.error("Error loading projects from localStorage", error); return [];
+                  console.error("Error loading all data from localStorage", error); return {};
               }
           });
-          const [goalAmount, setGoalAmount] = useState(() => {
+
+          // One-time migration from old data structure
+          useEffect(() => {
+            const oldProjectsJSON = localStorage.getItem('projects');
+            if (oldProjectsJSON) {
               try {
-                const savedGoal = localStorage.getItem('goalAmount');
-                return savedGoal ? Number(JSON.parse(savedGoal)) : 10000000;
+                const oldGoalJSON = localStorage.getItem('goalAmount');
+                const currentPeriodValue = getCurrentPeriod().value;
+                
+                setAllData(prevData => {
+                  const migratedData = {
+                      projects: JSON.parse(oldProjectsJSON),
+                      goalAmount: oldGoalJSON ? Number(JSON.parse(oldGoalJSON)) : 10000000
+                  };
+                  // Avoid overwriting if new data for the period already exists
+                  if (!prevData[currentPeriodValue]) {
+                      return { ...prevData, [currentPeriodValue]: migratedData };
+                  }
+                  return prevData;
+                });
+
+                localStorage.removeItem('projects');
+                localStorage.removeItem('goalAmount');
               } catch (error) {
-                  console.error("Error loading goal amount from localStorage", error); return 10000000;
+                console.error("Failed to migrate data", error);
               }
-          });
+            }
+          }, [getCurrentPeriod]);
+
+          useEffect(() => {
+              try {
+                  localStorage.setItem('allPeriodData', JSON.stringify(allData));
+              } catch (error) { console.error("Error saving all data to localStorage", error); }
+          }, [allData]);
+
+          const { projects, goalAmount } = useMemo(() => {
+              return allData[selectedPeriod] || { projects: [], goalAmount: 10000000 };
+          }, [allData, selectedPeriod]);
+
+          const setProjectsForCurrentPeriod = (update) => {
+              setAllData(prevAllData => {
+                  const currentData = prevAllData[selectedPeriod] || { projects: [], goalAmount: 10000000 };
+                  const newProjects = typeof update === 'function' ? update(currentData.projects) : update;
+                  return {
+                      ...prevAllData,
+                      [selectedPeriod]: { ...currentData, projects: newProjects },
+                  };
+              });
+          };
+
+          const setGoalAmountForCurrentPeriod = (newGoal) => {
+              setAllData(prevAllData => {
+                  const currentData = prevAllData[selectedPeriod] || { projects: [], goalAmount: 10000000 };
+                  return {
+                      ...prevAllData,
+                      [selectedPeriod]: { ...currentData, goalAmount: newGoal },
+                  };
+              });
+          };
+
           const [isModalOpen, setIsModalOpen] = useState(false);
           const [editingProject, setEditingProject] = useState(null);
           const [viewingProject, setViewingProject] = useState(null);
           const initialFilters = { keyword: '', status: 'すべて', customerCategory: 'すべて' };
           const [filters, setFilters] = useState(initialFilters);
-          const [sortKey, setSortKey] = useState('registrationDate_desc');
+          const [sortKey, setSortKey] = useState('registrationDate_asc');
           const [isFilterVisible, setIsFilterVisible] = useState(false);
           const [confirmation, setConfirmation] = useState({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
-
-          const periodData = usePeriodCalculator();
-
-          useEffect(() => {
-              try {
-                  localStorage.setItem('projects', JSON.stringify(projects));
-              } catch (error) { console.error("Error saving projects to localStorage", error); }
-          }, [projects]);
-
-          useEffect(() => {
-              try {
-                  localStorage.setItem('goalAmount', JSON.stringify(goalAmount));
-              } catch (error) { console.error("Error saving goal amount to localStorage", error); }
-          }, [goalAmount]);
+          const [dashboardView, setDashboardView] = useState('details');
           
           const handleSaveProject = (projectData) => {
-              setProjects(prevProjects => {
+              setProjectsForCurrentPeriod(prevProjects => {
                   if (projectData.id) { // Update existing
                       return prevProjects.map(p => p.id === projectData.id ? { ...p, ...projectData } : p);
                   } else { // Add new
@@ -675,7 +750,7 @@
               setConfirmation({
                   isOpen: true, title: '案件の削除', message: 'この案件を完全に削除します。この操作は元に戻せません。よろしいですか？',
                   onConfirm: () => {
-                      setProjects(prev => prev.filter(p => p.id !== projectId));
+                      setProjectsForCurrentPeriod(prev => prev.filter(p => p.id !== projectId));
                       setViewingProject(null);
                       setConfirmation({ isOpen: false });
                   },
@@ -687,7 +762,7 @@
               setConfirmation({
                   isOpen: true, title: '失注の確認', message: 'この案件を「失注」としてマークしますか？タスクの変更ができなくなります。',
                   onConfirm: () => {
-                      setProjects(prev => prev.map(p => p.id === projectId ? {...p, isLost: true} : p));
+                      setProjectsForCurrentPeriod(prev => prev.map(p => p.id === projectId ? {...p, isLost: true} : p));
                       setViewingProject(prev => prev && prev.id === projectId ? {...prev, isLost: true} : prev);
                       setConfirmation({ isOpen: false });
                   },
@@ -699,7 +774,7 @@
               setConfirmation({
                   isOpen: true, title: '失注の取り消し', message: 'この案件を「失注」から戻しますか？タスクの変更が可能になります。',
                   onConfirm: () => {
-                      setProjects(prev => prev.map(p => p.id === projectId ? {...p, isLost: false} : p));
+                      setProjectsForCurrentPeriod(prev => prev.map(p => p.id === projectId ? {...p, isLost: false} : p));
                       setViewingProject(null);
                       setConfirmation({ isOpen: false });
                   },
@@ -708,65 +783,15 @@
           };
 
           const handleTaskToggle = (projectId, taskName) => {
-              setProjects(prevProjects => prevProjects.map(p => {
-                  if (p.id === projectId) {
-                      const newTasks = { ...p.tasks };
-                      const isUnchecking = newTasks[taskName];
-
-                      if (isUnchecking) {
-                          const visibleTasks = getVisibleTasks(p);
-                          const taskIndex = visibleTasks.indexOf(taskName);
-                          if (taskIndex !== -1) {
-                              for (let i = taskIndex; i < visibleTasks.length; i++) {
-                                  newTasks[visibleTasks[i]] = false;
-                              }
-                          }
-                      } else {
-                          newTasks[taskName] = true;
-                      }
+              setProjectsForCurrentPeriod(prevProjects => prevProjects.map(p => {
+                  if (p.id === projectId && !p.isLost) {
+                      const newTasks = { ...p.tasks, [taskName]: !p.tasks[taskName] };
                       return { ...p, tasks: newTasks };
                   }
                   return p;
               }));
           };
 
-          const confirmAndToggleTask = (projectId, taskName) => {
-              const project = projects.find(p => p.id === projectId);
-              if (!project || project.isLost) return;
-
-              const isUnchecking = project.tasks[taskName];
-              if (!isUnchecking) {
-                  handleTaskToggle(projectId, taskName);
-                  return;
-              }
-              
-              const visibleTasks = getVisibleTasks(project);
-              const isCompleted = visibleTasks.every(task => project.tasks[task]);
-              const isOrdered = project.tasks['本社発注'];
-
-              let confirmationMessage = '';
-              if (isCompleted) {
-                  confirmationMessage = 'この案件は「完了」ステータスです。タスクを未完了に戻しますか？後続のタスクも全て未完了になります。';
-              } else if (isOrdered && taskName === '本社発注') {
-                  confirmationMessage = 'この案件は「受注」ステータスです。「本社発注」を未完了に戻しますか？後続のタスクも全て未完了になります。';
-              } else if (isUnchecking) {
-                   confirmationMessage = `タスク「${taskName}」を未完了に戻しますか？後続のタスクも全て未完了になります。`;
-              }
-
-              if (confirmationMessage) {
-                  setConfirmation({
-                      isOpen: true, title: 'タスクの更新確認', message: confirmationMessage,
-                      onConfirm: () => {
-                          handleTaskToggle(projectId, taskName);
-                          setConfirmation({ isOpen: false });
-                      },
-                      onCancel: () => setConfirmation({ isOpen: false })
-                  });
-              } else {
-                  handleTaskToggle(projectId, taskName);
-              }
-          };
-          
           const handleCarryOver = (project) => {
               setConfirmation({
                 isOpen: true, title: '案件の繰越', message: `${project.clientName}の案件をコピーして繰り越しますか？`,
@@ -776,7 +801,7 @@
                         tasks: TASKS.reduce((acc, task) => ({...acc, [task]: false}), {}),
                         isLost: false, memo: `(繰越元: ${project.registrationDate} ${project.projectName})\n${project.memo}`
                     };
-                    setProjects(prev => [...prev, newProject]);
+                    setProjectsForCurrentPeriod(prev => [...prev, newProject]);
                     setConfirmation({isOpen: false});
                     setViewingProject(null);
                 },
@@ -790,7 +815,7 @@
 
           const handleResetFilters = () => {
               setFilters(initialFilters);
-              setSortKey('registrationDate_desc');
+              setSortKey('registrationDate_asc');
           };
 
           const filteredAndSortedProjects = useMemo(() => {
@@ -825,15 +850,34 @@
 
           return (
               <div className="container mx-auto p-4 md:p-8 max-w-full">
-                  <header className="flex justify-between items-center mb-6 flex-wrap gap-4">
-                      <h1 className="text-3xl font-bold text-slate-900">受発注管理ツール</h1>
-                      <button onClick={() => { setEditingProject(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition-colors">
-                          <PlusIcon className="w-5 h-5" />
-                          <span>新規案件</span>
-                      </button>
+                  <header className="grid grid-cols-2 md:grid-cols-3 items-center mb-6 gap-y-4 gap-x-2">
+                      <h1 className="text-3xl font-bold text-slate-900 col-span-1">受発注管理ツール</h1>
+                      
+                      <div className="md:col-span-1 md:justify-self-center order-3 md:order-2 col-span-2 md:col-auto">
+                          <div className="inline-flex rounded-md shadow-sm w-full md:w-auto">
+                              <button type="button" onClick={() => setDashboardView('details')} className={`w-full px-4 py-2 text-sm font-medium transition-colors ${dashboardView === 'details' ? 'bg-blue-600 text-white' : 'bg-white text-slate-900 hover:bg-slate-100'} border border-slate-200 rounded-l-lg`}>
+                                  明細
+                              </button>
+                              <button type="button" onClick={() => setDashboardView('analysis')} className={`w-full px-4 py-2 text-sm font-medium transition-colors ${dashboardView === 'analysis' ? 'bg-blue-600 text-white' : 'bg-white text-slate-900 hover:bg-slate-100'} border-t border-b border-r border-slate-200 rounded-r-lg`}>
+                                  分析
+                              </button>
+                          </div>
+                      </div>
+
+                      <div className="justify-self-end order-2 md:order-3 col-span-1">
+                          <button onClick={() => { setEditingProject(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                              <PlusIcon className="w-5 h-5" />
+                              <span>新規案件</span>
+                          </button>
+                      </div>
                   </header>
                   
-                  <Dashboard projects={projects} goalAmount={goalAmount} setGoalAmount={setGoalAmount} periodData={periodData} />
+                  <Dashboard 
+                    projects={projects} 
+                    goalAmount={goalAmount} 
+                    setGoalAmount={setGoalAmountForCurrentPeriod} 
+                    periodData={{...periodData, setSelectedPeriod}}
+                  />
 
                   <div className="bg-white shadow-lg rounded-xl">
                       <button onClick={() => setIsFilterVisible(!isFilterVisible)} className="w-full flex justify-between items-center font-bold text-lg text-slate-800 p-6">
@@ -860,11 +904,18 @@
                       </div>
                   </div>
 
-                  <ProjectTable 
-                      projects={filteredAndSortedProjects}
-                      onViewDetails={setViewingProject}
-                      onTaskToggle={confirmAndToggleTask}
-                  />
+                  {dashboardView === 'details' ? (
+                     <ProjectTable 
+                        projects={filteredAndSortedProjects}
+                        onViewDetails={setViewingProject}
+                        onTaskToggle={handleTaskToggle}
+                    />
+                  ) : (
+                    <div className="mt-6 p-12 bg-white shadow-lg rounded-xl text-center text-slate-500">
+                        <h3 className="text-lg font-semibold">分析機能</h3>
+                        <p className="mt-2 text-sm">この機能は現在準備中です。今後のアップデートにご期待ください。</p>
+                    </div>
+                  )}
 
                   <NewProjectModal 
                       isOpen={isModalOpen}
