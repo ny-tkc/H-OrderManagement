@@ -23,7 +23,6 @@
           position: sticky;
           top: 0;
           z-index: 10;
-          background-color: #f1f5f9; /* bg-slate-100 */
       }
       .goal-success-toast {
         animation: fadeInOut 3s ease-in-out;
@@ -45,7 +44,7 @@
       // --- CONSTANTS ---
       const TASKS = [
         'ネゴ提案', '見積提示', '注文作成', '本社発注', '日程調整',
-        '現地調整', '検収作成', '検収送付', '保守作成', '保守送付'
+        '現地調整', '検収作成', '保守作成', '検収送付', '保守送付'
       ];
       const CUSTOMER_CATEGORIES = ['会計事務所', '関与先'];
       const DIVISIONS = ['新規', 'リプレイス', 'その他'];
@@ -81,6 +80,14 @@
               visible = visible.filter(t => t !== '保守作成' && t !== '保守送付');
           }
           return visible;
+      };
+
+      const getProjectStatusCategory = (project) => {
+        if (project.isLost) return 3; // 失注
+        const visibleTasks = getVisibleTasks(project);
+        const isCompleted = visibleTasks.every(task => project.tasks[task]);
+        if (isCompleted) return 2; // 完了
+        return 1; // 進行中
       };
 
       // --- ICONS ---
@@ -391,7 +398,7 @@
               case 'next':
                   return (
                       <button onClick={onClick} disabled={disabled} title="次のタスク" className={`${baseClasses} ${interactiveClasses} bg-white border-2 border-blue-500 shadow`}>
-                           <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse"></div>
+                           <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
                       </button>
                   );
               case 'pending':
@@ -446,9 +453,6 @@
                     <div className="flex-grow min-w-0">
                         <h3 className="font-bold text-slate-900 truncate text-base">{project.clientName}</h3>
                         <p className="text-slate-500 text-xs mt-1 truncate">{project.projectName}</p>
-                        {nextVisibleTask && (
-                            <p className="text-orange-600 font-semibold text-xs mt-1">{nextVisibleTask}未了</p>
-                        )}
                     </div>
                 </div>
 
@@ -491,7 +495,7 @@
         return (
             <div className="bg-white shadow-lg rounded-xl overflow-x-auto mt-6">
                 <div className="w-full min-w-[1160px]">
-                    <div className="sticky-header border-b-2 border-slate-300 text-xs font-bold text-slate-600">
+                    <div className="sticky-header bg-white border-b-2 border-slate-300 text-xs font-bold text-slate-600">
                          <div className="grid grid-cols-[minmax(0,_3.5fr)_minmax(0,_1fr)_minmax(0,_1.2fr)_repeat(10,minmax(36px,_1fr))_minmax(0,_1fr)] items-center">
                             <div className="p-2 pl-4">顧客・案件名</div>
                             <div className="p-2 text-center">登録日</div>
@@ -837,8 +841,15 @@
                     return keywordMatch && statusMatch && categoryMatch;
               });
 
-              const [key, order] = sortKey.split('_');
               result.sort((a, b) => {
+                  const categoryA = getProjectStatusCategory(a);
+                  const categoryB = getProjectStatusCategory(b);
+
+                  if (categoryA !== categoryB) {
+                      return categoryA - categoryB;
+                  }
+                  
+                  const [key, order] = sortKey.split('_');
                   const valA = key === 'mainAmount' ? a.mainAmount + (a.setupAmount || 0) : a[key];
                   const valB = key === 'mainAmount' ? b.mainAmount + (b.setupAmount || 0) : b[key];
                   if (valA < valB) return order === 'asc' ? -1 : 1;
@@ -853,15 +864,17 @@
                   <header className="grid grid-cols-2 md:grid-cols-3 items-center mb-6 gap-y-4 gap-x-2">
                       <h1 className="text-3xl font-bold text-slate-900 col-span-1">受発注管理ツール</h1>
                       
-                      <div className="md:col-span-1 md:justify-self-center order-3 md:order-2 col-span-2 md:col-auto">
-                          <div className="inline-flex rounded-md shadow-sm w-full md:w-auto">
-                              <button type="button" onClick={() => setDashboardView('details')} className={`w-full px-4 py-2 text-sm font-medium transition-colors ${dashboardView === 'details' ? 'bg-blue-600 text-white' : 'bg-white text-slate-900 hover:bg-slate-100'} border border-slate-200 rounded-l-lg`}>
+                      <div className="md:col-span-1 flex justify-center order-3 md:order-2 col-span-2 md:col-auto">
+                        <div className="border-b border-slate-200">
+                          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                              <button onClick={() => setDashboardView('details')} className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors ${dashboardView === 'details' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
                                   明細
                               </button>
-                              <button type="button" onClick={() => setDashboardView('analysis')} className={`w-full px-4 py-2 text-sm font-medium transition-colors ${dashboardView === 'analysis' ? 'bg-blue-600 text-white' : 'bg-white text-slate-900 hover:bg-slate-100'} border-t border-b border-r border-slate-200 rounded-r-lg`}>
+                              <button onClick={() => setDashboardView('analysis')} className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors ${dashboardView === 'analysis' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
                                   分析
                               </button>
-                          </div>
+                          </nav>
+                        </div>
                       </div>
 
                       <div className="justify-self-end order-2 md:order-3 col-span-1">
