@@ -18,12 +18,6 @@
       .filter-content.open {
         max-height: 600px; /* Adjust as needed */
       }
-      /* Ensure sticky header has a background and stays on top */
-      .sticky-header {
-          position: sticky;
-          top: 0;
-          z-index: 10;
-      }
       .goal-success-toast {
         animation: fadeInOut 3s ease-in-out;
       }
@@ -32,6 +26,12 @@
         20% { opacity: 1; transform: translateY(0); }
         80% { opacity: 1; transform: translateY(0); }
         100% { opacity: 0; transform: translateY(-10px); }
+      }
+      .sticky-header th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: white;
       }
     </style>
 <link rel="stylesheet" href="/index.css">
@@ -44,7 +44,7 @@
       // --- CONSTANTS ---
       const TASKS = [
         'ネゴ提案', '見積提示', '注文作成', '本社発注', '日程調整',
-        '現地調整', '検収作成', '保守作成', '検収送付', '保守送付'
+        '現地調整', '検収作成', '検収送付', '保守作成', '保守送付'
       ];
       const CUSTOMER_CATEGORIES = ['会計事務所', '関与先'];
       const DIVISIONS = ['新規', 'リプレイス', 'その他'];
@@ -83,11 +83,12 @@
       };
 
       const getProjectStatusCategory = (project) => {
-        if (project.isLost) return 3; // 失注
+        if (project.isLost) return 4; // 失注
         const visibleTasks = getVisibleTasks(project);
         const isCompleted = visibleTasks.every(task => project.tasks[task]);
-        if (isCompleted) return 2; // 完了
-        return 1; // 進行中
+        if (isCompleted) return 3; // 完了
+        if (project.tasks['本社発注']) return 1; // 進行中 (受注)
+        return 2; // 進行中 (未受注)
       };
 
       // --- ICONS ---
@@ -101,6 +102,7 @@
       const DocumentTextIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>);
       const CheckIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>);
       const RefreshIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-3.181-4.991-3.181-3.183a8.25 8.25 0 0 0-11.664 0l-3.181 3.183" /></svg>);
+      const ChatBubbleLeftEllipsisIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" /></svg>);
 
       // --- HOOKS ---
       const usePeriodCalculator = () => {
@@ -137,34 +139,13 @@
 
           const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod().value);
           
-          const calculateBusinessDays = useCallback((endDate) => {
-              let count = 0;
-              const curDate = new Date();
-              if(curDate > endDate) return 0;
-              
-              while (curDate <= endDate) {
-                  const dayOfWeek = curDate.getDay();
-                  const dateString = curDate.toISOString().split('T')[0];
-                  if (dayOfWeek !== 0 && dayOfWeek !== 6 && !JAPANESE_HOLIDAYS.has(dateString)) {
-                      count++;
-                  }
-                  curDate.setDate(curDate.getDate() + 1);
-              }
-              return count;
-          }, []);
-
-          const remainingBusinessDays = useMemo(() => {
-              const period = allPeriods.find(p => p.value === selectedPeriod);
-              return period ? calculateBusinessDays(period.endDate) : 0;
-          }, [selectedPeriod, allPeriods, calculateBusinessDays]);
-
-          return { periods: allPeriods, selectedPeriod, setSelectedPeriod, remainingBusinessDays, getCurrentPeriod };
+          return { periods: allPeriods, selectedPeriod, setSelectedPeriod, getCurrentPeriod };
       }
 
       // --- COMPONENTS ---
       const Input = (props) => <input {...props} className="block w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
       const Select = (props) => <select {...props} className="block w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
-      const Label = ({htmlFor, children}) => <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700 mb-1">{children}</label>;
+      const Label = ({htmlFor, children, className}) => <label htmlFor={htmlFor} className={`block text-sm font-medium text-slate-700 mb-1 ${className}`}>{children}</label>;
       
       const ModalInput = React.forwardRef((props, ref) => <input {...props} ref={ref} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />);
       const ModalSelect = (props) => <select {...props} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />;
@@ -256,10 +237,19 @@
             setStep(2);
         };
 
+        const handleAmountChange = (e) => {
+            const { name, value } = e.target;
+            const sanitizedValue = value.replace(/,/g, '');
+            if (/^\d*$/.test(sanitizedValue)) {
+                const numValue = sanitizedValue === '' ? 0 : parseInt(sanitizedValue, 10);
+                setFormState(prev => ({ ...prev, [name]: numValue }));
+            }
+        };
+
         const handleChange = (e) => {
             const { name, value, type } = e.target;
             setFormState(prevFormState => {
-                const newFormState = { ...prevFormState, [name]: type === 'number' ? Number(value) : value };
+                const newFormState = { ...prevFormState, [name]: value };
 
                 if (name === 'productType') {
                     if (value === 'PC' || value === 'プリンタ') {
@@ -270,9 +260,15 @@
                         newFormState.paymentType = 'MIST'; newFormState.setup = 'あり (NSG)'; newFormState.setupAmount = 30000;
                     }
                 } else if (name === 'setup') {
-                    if (value === 'あり (Q&A)') newFormState.setupAmount = 15000;
-                    else if (value === 'あり (NSG)') newFormState.setupAmount = 30000;
-                    else if (value === 'なし') newFormState.setupAmount = 0;
+                    if (prevFormState.category === '関与先' && value === 'あり (SCG)') {
+                        newFormState.setupAmount = 20000;
+                    } else if (value === 'あり (Q&A)') {
+                        newFormState.setupAmount = 15000;
+                    } else if (value === 'あり (NSG)') {
+                        newFormState.setupAmount = 30000;
+                    } else if (value === 'なし') {
+                        newFormState.setupAmount = 0;
+                    }
                 }
                 return newFormState;
             });
@@ -309,12 +305,12 @@
                                 <div><ModalLabel htmlFor="registrationDate">登録日 <span className="text-red-500">*</span></ModalLabel><ModalInput type="date" name="registrationDate" id="registrationDate" value={formState.registrationDate} onChange={handleChange} ref={dateInputRef} required /></div>
                                 <div><ModalLabel htmlFor="clientName">顧客名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="clientName" id="clientName" value={formState.clientName} onChange={handleChange} required /></div>
                                 <div className="md:col-span-2"><ModalLabel htmlFor="projectName">案件名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="projectName" id="projectName" value={formState.projectName} onChange={handleChange} required /></div>
-                                <div><ModalLabel htmlFor="mainAmount">本体金額 (税抜)</ModalLabel><ModalInput type="number" name="mainAmount" id="mainAmount" value={formState.mainAmount} onChange={handleChange} /></div>
+                                <div><ModalLabel htmlFor="mainAmount">本体金額 (税抜)</ModalLabel><ModalInput type="text" name="mainAmount" id="mainAmount" value={formState.mainAmount.toLocaleString()} onChange={handleAmountChange} /></div>
                                 <div><ModalLabel htmlFor="division">区分</ModalLabel><ModalSelect name="division" id="division" value={formState.division} onChange={handleChange}>{DIVISIONS.map(d => <option key={d}>{d}</option>)}</ModalSelect></div>
                                 <div><ModalLabel htmlFor="productType">商品種別</ModalLabel><ModalSelect name="productType" id="productType" value={formState.productType} onChange={handleChange}>{availableProductTypes.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
                                 <div><ModalLabel htmlFor="paymentType">支払区分</ModalLabel><ModalSelect name="paymentType" id="paymentType" value={formState.paymentType} onChange={handleChange}>{availablePaymentTypes.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
                                 <div><ModalLabel htmlFor="setup">セットアップ</ModalLabel><ModalSelect name="setup" id="setup" value={formState.setup} onChange={handleChange}>{availableSetupOptions.map(s => <option key={s}>{s}</option>)}</ModalSelect></div>
-                                {showSetupAmount && <div><ModalLabel htmlFor="setupAmount">セットアップ金額 (税抜)</ModalLabel><ModalInput type="number" name="setupAmount" id="setupAmount" value={formState.setupAmount} onChange={handleChange} readOnly={formState.setup !== 'あり (SCG)'} /></div>}
+                                {showSetupAmount && <div><ModalLabel htmlFor="setupAmount">セットアップ金額 (税抜)</ModalLabel><ModalInput type="text" name="setupAmount" id="setupAmount" value={formState.setupAmount.toLocaleString()} onChange={handleAmountChange} readOnly={formState.setup !== 'あり (SCG)'} /></div>}
                                 <div><ModalLabel htmlFor="maintenance">保守契約</ModalLabel><ModalSelect name="maintenance" id="maintenance" value={formState.maintenance} onChange={handleChange}>{MAINTENANCE_OPTIONS.map(m => <option key={m}>{m}</option>)}</ModalSelect></div>
                                 <div className="md:col-span-2"><ModalLabel htmlFor="memo">メモ</ModalLabel><ModalTextarea name="memo" id="memo" value={formState.memo} onChange={handleChange} /></div>
                             </div>
@@ -384,6 +380,39 @@
         );
       };
 
+      const MemoModal = ({ isOpen, project, onClose, onSave }) => {
+          const [memo, setMemo] = useState('');
+
+          useEffect(() => {
+              if (project) {
+                  setMemo(project.memo || '');
+              }
+          }, [project]);
+
+          if (!isOpen || !project) return null;
+
+          const handleSave = () => {
+              onSave(project, memo);
+              onClose();
+          };
+
+          return (
+              <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+                  <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                      <div className="p-6">
+                          <h3 className="text-lg font-bold text-slate-800">{project.clientName} - メモ</h3>
+                          <p className="text-sm text-slate-500 mt-1 truncate">{project.projectName}</p>
+                          <ModalTextarea value={memo} onChange={e => setMemo(e.target.value)} className="mt-4" rows="5" />
+                      </div>
+                      <div className="px-6 py-4 bg-slate-50 flex justify-end items-center space-x-3 rounded-b-lg">
+                          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">キャンセル</button>
+                          <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">保存する</button>
+                      </div>
+                  </div>
+              </div>
+          );
+      };
+
       const TaskStatus = ({ status, onClick, disabled }) => {
           const baseClasses = "w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out";
           const interactiveClasses = disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400';
@@ -397,9 +426,7 @@
                   );
               case 'next':
                   return (
-                      <button onClick={onClick} disabled={disabled} title="次のタスク" className={`${baseClasses} ${interactiveClasses} bg-white border-2 border-blue-500 shadow`}>
-                           <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
-                      </button>
+                      <button onClick={onClick} disabled={disabled} title="次のタスク" className={`${baseClasses} ${interactiveClasses} bg-blue-200 border border-blue-400 shadow`}></button>
                   );
               case 'pending':
                   return (
@@ -430,7 +457,7 @@
         );
       };
 
-      const ProjectCard = ({ project, onViewDetails, onTaskToggle }) => {
+      const ProjectCard = ({ project, onViewDetails, onTaskToggle, onOpenMemo }) => {
           const totalAmount = project.mainAmount + (project.setupAmount || 0);
           
           const visibleTasks = useMemo(() => getVisibleTasks(project), [project]);
@@ -447,19 +474,24 @@
           else if (isOrdered) status = '受注';
 
           return (
-            <div className={`grid grid-cols-[minmax(0,_3.5fr)_minmax(0,_1fr)_minmax(0,_1.2fr)_repeat(10,minmax(36px,_1fr))_minmax(0,_1fr)] items-center text-sm hover:bg-slate-50 transition-colors duration-200 ${project.isLost ? 'opacity-60 grayscale' : ''}`}>
-                <div className="p-2 pl-4 flex items-center gap-3 min-w-0">
-                    <HankoStamp status={status} />
-                    <div className="flex-grow min-w-0">
-                        <h3 className="font-bold text-slate-900 truncate text-base">{project.clientName}</h3>
-                        <p className="text-slate-500 text-xs mt-1 truncate">{project.projectName}</p>
-                    </div>
-                </div>
-
-                <div className="p-2 text-slate-600 text-center">{new Date(project.registrationDate).toLocaleDateString('ja-JP')}</div>
-                <div className="p-2 font-semibold text-slate-800 text-right">{totalAmount.toLocaleString()}円</div>
-
-                {TASKS.map((task, index) => {
+            <tr className={`hover:bg-slate-50 transition-colors duration-200 ${project.isLost ? 'opacity-60 grayscale' : ''}`}>
+                <td className="p-2 pl-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                      <HankoStamp status={status} />
+                      <div className="flex-grow min-w-0">
+                          <h3 className="font-bold text-slate-900 truncate text-base">{project.clientName}</h3>
+                          <p className="text-slate-500 text-xs mt-1 truncate">{project.projectName}</p>
+                      </div>
+                  </div>
+                </td>
+                <td className="p-2 text-slate-600 text-center">{new Date(project.registrationDate).toLocaleDateString('ja-JP')}</td>
+                 <td className="p-2 text-center">
+                    <button onClick={() => onOpenMemo(project)} className={`p-2 rounded-full transition-colors ${project.memo ? 'text-blue-600 bg-blue-100 hover:bg-blue-200' : 'text-slate-400 hover:bg-slate-200 hover:text-slate-600'}`} title="メモ">
+                        <ChatBubbleLeftEllipsisIcon className="w-5 h-5" />
+                    </button>
+                </td>
+                <td className="p-2 font-semibold text-slate-800 text-right">{totalAmount.toLocaleString()}円</td>
+                {TASKS.map((task) => {
                     const isVisible = visibleTasks.includes(task);
                     const isCompleted = project.tasks[task];
                     const isNext = task === nextVisibleTask;
@@ -472,51 +504,55 @@
                     const isDisabled = project.isLost;
 
                     return (
-                        <div key={task} className="flex justify-center items-center h-full">
-                            <TaskStatus
-                                status={taskStatus}
-                                onClick={() => onTaskToggle(project.id, task)}
-                                disabled={isDisabled}
-                            />
-                        </div>
+                        <td key={task} className="text-center">
+                            <div className="flex justify-center items-center h-full">
+                                <TaskStatus
+                                    status={taskStatus}
+                                    onClick={() => onTaskToggle(project.id, task)}
+                                    disabled={isDisabled}
+                                />
+                            </div>
+                        </td>
                     );
                 })}
-                
-                <div className="p-2 text-center">
+                <td className="p-2 text-center">
                     <button onClick={() => onViewDetails(project)} className="p-2 text-slate-500 hover:bg-slate-200 hover:text-slate-800 rounded-full transition-colors" title="詳細を表示">
                         <DocumentTextIcon className="w-5 h-5" />
                     </button>
-                </div>
-            </div>
+                </td>
+            </tr>
           );
       };
 
-      const ProjectTable = ({ projects, onViewDetails, onTaskToggle }) => {
+      const ProjectTable = ({ projects, onViewDetails, onTaskToggle, onOpenMemo }) => {
         return (
-            <div className="bg-white shadow-lg rounded-xl overflow-x-auto mt-6">
-                <div className="w-full min-w-[1160px]">
-                    <div className="sticky-header bg-white border-b-2 border-slate-300 text-xs font-bold text-slate-600">
-                         <div className="grid grid-cols-[minmax(0,_3.5fr)_minmax(0,_1fr)_minmax(0,_1.2fr)_repeat(10,minmax(36px,_1fr))_minmax(0,_1fr)] items-center">
-                            <div className="p-2 pl-4">顧客・案件名</div>
-                            <div className="p-2 text-center">登録日</div>
-                            <div className="p-2 text-right">金額 (総額)</div>
+            <div className="bg-white shadow-lg rounded-xl overflow-x-auto mt-6" style={{maxHeight: '70vh'}}>
+                <table className="w-full min-w-[1220px] border-collapse text-sm">
+                    <thead className="sticky-header">
+                        <tr className="border-b-2 border-slate-300 text-xs font-semibold text-slate-600">
+                            <th className="p-2 pl-4 text-left w-[25%]">顧客・案件名</th>
+                            <th className="p-2 text-center w-[8%]">登録日</th>
+                            <th className="p-2 text-center w-[5%]">メモ</th>
+                            <th className="p-2 text-right w-[10%]">金額 (総額)</th>
                             {TASKS.map(task => (
-                                <div key={task} className="p-1 text-center text-[10px] leading-tight break-words">{task}</div>
+                                <th key={task} className="p-1 text-center text-[10px] leading-tight break-words w-[4%]">{task}</th>
                             ))}
-                            <div className="p-2 text-center">詳細</div>
-                        </div>
-                    </div>
-                    <div className="divide-y divide-slate-200">
+                            <th className="p-2 text-center w-[5%]">詳細</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
                         {projects.length > 0 ? (
-                            projects.map(project => <ProjectCard key={project.id} {...{ project, onViewDetails, onTaskToggle }} />)
+                            projects.map(project => <ProjectCard key={project.id} {...{ project, onViewDetails, onTaskToggle, onOpenMemo }} />)
                         ) : (
-                             <div className="p-12 text-center text-slate-500">
-                                <h3 className="text-lg font-semibold">案件がありません</h3>
-                                <p className="mt-2 text-sm">右上の「新規案件」ボタンから新しい案件を登録してください。</p>
-                            </div>
+                             <tr>
+                                 <td colSpan={TASKS.length + 5} className="p-12 text-center text-slate-500">
+                                    <h3 className="text-lg font-semibold">案件がありません</h3>
+                                    <p className="mt-2 text-sm">右上の「新規案件」ボタンから新しい案件を登録してください。</p>
+                                 </td>
+                             </tr>
                         )}
-                    </div>
-                </div>
+                    </tbody>
+                </table>
             </div>
         );
       };
@@ -565,8 +601,7 @@
         );
       };
 
-      const Dashboard = ({ projects, goalAmount, setGoalAmount, periodData }) => {
-          const { periods, selectedPeriod, setSelectedPeriod, remainingBusinessDays } = periodData;
+      const Dashboard = ({ projects, goalAmount, setGoalAmount }) => {
           const [isEditingGoal, setIsEditingGoal] = useState(false);
           const [tempGoal, setTempGoal] = useState(goalAmount);
           const [showSuccess, setShowSuccess] = useState(false);
@@ -594,21 +629,6 @@
 
           return (
             <div className="bg-slate-50/50 shadow-lg rounded-xl p-6 mb-6">
-                <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-                     <div className="flex items-end gap-6 flex-wrap">
-                        <div>
-                            <Label htmlFor="periodSelect">対象期間</Label>
-                            <Select id="periodSelect" value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} className="w-full sm:w-auto">
-                                {periods.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                            </Select>
-                        </div>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                        <div className="text-sm text-slate-500">残り営業日</div>
-                        <div className="text-2xl font-bold mt-1 text-slate-900">{remainingBusinessDays}<span className="text-base ml-1">日</span></div>
-                    </div>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <DashboardCard title="対象総額" value={`${stats.totalAmount.toLocaleString()}円`} subtext={`${stats.totalProjectsCount}件`} />
                      <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative h-full">
@@ -649,7 +669,7 @@
 
       const App = () => {
           const periodData = usePeriodCalculator();
-          const { selectedPeriod, setSelectedPeriod, getCurrentPeriod } = periodData;
+          const { selectedPeriod, setSelectedPeriod, getCurrentPeriod, periods } = periodData;
 
           const [allData, setAllData] = useState(() => {
               try {
@@ -722,12 +742,12 @@
           const [isModalOpen, setIsModalOpen] = useState(false);
           const [editingProject, setEditingProject] = useState(null);
           const [viewingProject, setViewingProject] = useState(null);
+          const [memoModalProject, setMemoModalProject] = useState(null);
           const initialFilters = { keyword: '', status: 'すべて', customerCategory: 'すべて' };
           const [filters, setFilters] = useState(initialFilters);
           const [sortKey, setSortKey] = useState('registrationDate_asc');
           const [isFilterVisible, setIsFilterVisible] = useState(false);
           const [confirmation, setConfirmation] = useState({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
-          const [dashboardView, setDashboardView] = useState('details');
           
           const handleSaveProject = (projectData) => {
               setProjectsForCurrentPeriod(prevProjects => {
@@ -813,6 +833,10 @@
               });
           };
 
+          const handleSaveMemo = (project, newMemo) => {
+            handleSaveProject({ ...project, memo: newMemo });
+          };
+
           const handleFilterChange = (e) => {
               setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
           };
@@ -861,27 +885,19 @@
 
           return (
               <div className="container mx-auto p-4 md:p-8 max-w-full">
-                  <header className="grid grid-cols-2 md:grid-cols-3 items-center mb-6 gap-y-4 gap-x-2">
-                      <h1 className="text-3xl font-bold text-slate-900 col-span-1">受発注管理ツール</h1>
-                      
-                      <div className="md:col-span-1 flex justify-center order-3 md:order-2 col-span-2 md:col-auto">
-                        <div className="border-b border-slate-200">
-                          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                              <button onClick={() => setDashboardView('details')} className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors ${dashboardView === 'details' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
-                                  明細
-                              </button>
-                              <button onClick={() => setDashboardView('analysis')} className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors ${dashboardView === 'analysis' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
-                                  分析
-                              </button>
-                          </nav>
+                  <header className="flex flex-wrap items-center justify-between gap-y-4 mb-6">
+                      <h1 className="text-3xl font-bold text-slate-900">受発注管理ツール</h1>
+                      <div className="flex items-center gap-4">
+                        <div>
+                            <Label htmlFor="periodSelect" className="sr-only">対象期間</Label>
+                            <Select id="periodSelect" value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)}>
+                                {periods.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                            </Select>
                         </div>
-                      </div>
-
-                      <div className="justify-self-end order-2 md:order-3 col-span-1">
-                          <button onClick={() => { setEditingProject(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition-colors">
-                              <PlusIcon className="w-5 h-5" />
-                              <span>新規案件</span>
-                          </button>
+                        <button onClick={() => { setEditingProject(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                            <PlusIcon className="w-5 h-5" />
+                            <span>新規案件</span>
+                        </button>
                       </div>
                   </header>
                   
@@ -889,7 +905,6 @@
                     projects={projects} 
                     goalAmount={goalAmount} 
                     setGoalAmount={setGoalAmountForCurrentPeriod} 
-                    periodData={{...periodData, setSelectedPeriod}}
                   />
 
                   <div className="bg-white shadow-lg rounded-xl">
@@ -917,18 +932,12 @@
                       </div>
                   </div>
 
-                  {dashboardView === 'details' ? (
-                     <ProjectTable 
-                        projects={filteredAndSortedProjects}
-                        onViewDetails={setViewingProject}
-                        onTaskToggle={handleTaskToggle}
-                    />
-                  ) : (
-                    <div className="mt-6 p-12 bg-white shadow-lg rounded-xl text-center text-slate-500">
-                        <h3 className="text-lg font-semibold">分析機能</h3>
-                        <p className="mt-2 text-sm">この機能は現在準備中です。今後のアップデートにご期待ください。</p>
-                    </div>
-                  )}
+                  <ProjectTable 
+                      projects={filteredAndSortedProjects}
+                      onViewDetails={setViewingProject}
+                      onTaskToggle={handleTaskToggle}
+                      onOpenMemo={setMemoModalProject}
+                  />
 
                   <NewProjectModal 
                       isOpen={isModalOpen}
@@ -955,6 +964,12 @@
                       onConfirm={confirmation.onConfirm}
                       onCancel={confirmation.onCancel}
                    />
+                  <MemoModal
+                      isOpen={!!memoModalProject}
+                      project={memoModalProject}
+                      onClose={() => setMemoModalProject(null)}
+                      onSave={handleSaveMemo}
+                  />
               </div>
           );
       };
