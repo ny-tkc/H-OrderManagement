@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       /* Simple transition for collapsible filter */
       .filter-content {
@@ -43,12 +44,12 @@
 
       // --- CONSTANTS ---
       const TASKS = [
-        'ネゴ提案', '見積提示', '注文作成', '本社発注', '日程調整',
+        'ネゴ提案', '見積提示', '注文作成', '本体受注', 'S/U発注', '日程調整',
         '現地調整', '検収作成', '保守作成', '検収送付', '保守送付'
       ];
       const CUSTOMER_CATEGORIES = ['会計事務所', '関与先'];
       const DIVISIONS = ['新規', 'リプレイス', 'その他'];
-      const PRODUCT_TYPES = ['PC', 'スキャナ', 'プリンタ', 'ルータ', 'その他'];
+      const PRODUCT_TYPES = ['PC', 'スキャナ', 'プリンタ', 'ルータ', 'SI', 'その他'];
       const PAYMENT_TYPES = ['COD', 'MIST', '後払い'];
       const SETUP_OPTIONS = ['なし', 'あり (SCG)', 'あり (Q&A)', 'あり (NSG)'];
       const MAINTENANCE_OPTIONS = ['あり', 'なし'];
@@ -73,6 +74,9 @@
           if (project.division === '新規') {
               visible = visible.filter(t => t !== 'ネゴ提案');
           }
+           if (project.setup === 'なし') {
+              visible = visible.filter(t => t !== 'S/U発注' && t !== '日程調整' && t !== '現地調整');
+          }
           if (project.paymentType === 'COD' && project.setup === 'なし') {
               visible = visible.filter(t => t !== '検収作成' && t !== '検収送付');
           }
@@ -87,7 +91,7 @@
         const visibleTasks = getVisibleTasks(project);
         const isCompleted = visibleTasks.every(task => project.tasks[task]);
         if (isCompleted) return 3; // 完了
-        if (project.tasks['本社発注']) return 2; // 進行中 (受注)
+        if (project.tasks['本体受注']) return 2; // 進行中 (受注)
         return 1; // 進行中 (未受注)
       };
 
@@ -170,6 +174,45 @@
               </div>
           );
       };
+
+      const OrderDateModal = ({ isOpen, defaultDate, onClose, onConfirm }) => {
+        const [date, setDate] = useState(defaultDate);
+
+        useEffect(() => {
+            if (isOpen) {
+                setDate(defaultDate || new Date().toISOString().split('T')[0]);
+            }
+        }, [isOpen, defaultDate]);
+
+        if (!isOpen) return null;
+
+        const handleConfirm = () => {
+            if (!date) {
+                alert('受注日を入力してください。');
+                return;
+            }
+            onConfirm(date);
+        };
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                    <div className="p-6">
+                        <h3 className="text-lg font-bold text-slate-800">受注日の登録</h3>
+                        <p className="mt-2 text-sm text-slate-600">本体受注を完了にするには、受注日を登録してください。</p>
+                        <div className="mt-4">
+                            <ModalLabel htmlFor="orderDateInput">受注日</ModalLabel>
+                            <ModalInput type="date" id="orderDateInput" value={date} onChange={e => setDate(e.target.value)} />
+                        </div>
+                    </div>
+                    <div className="px-6 py-4 bg-slate-50 flex justify-end items-center space-x-3 rounded-b-lg">
+                        <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">キャンセル</button>
+                        <button onClick={handleConfirm} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">登録する</button>
+                    </div>
+                </div>
+            </div>
+        );
+      };
       
       const GuideModal = ({ isOpen, onClose }) => {
         if (!isOpen) return null;
@@ -200,6 +243,7 @@
                                 <li><span className="inline-block w-4 h-4 rounded-full bg-blue-200 border border-blue-400 align-middle mr-2"></span>: 次に対応すべきタスク</li>
                                 <li><span className="inline-flex w-4 h-4 rounded-full bg-blue-500 items-center justify-center align-middle mr-2"><CheckIcon className="w-3 h-3 text-white"/></span>: 完了したタスク</li>
                             </ul>
+                            <p>「本体受注」タスクをクリックすると、受注日の入力が求められます。この日付が分析グラフの集計に使われます。</p>
                         </GuideSection>
                          <GuideSection title="3. メモ機能">
                             <p>案件一覧のメモアイコン <ChatBubbleLeftEllipsisIcon className="w-4 h-4 inline-block" /> をクリックすると、その案件に関するメモを自由に残せます。</p>
@@ -210,11 +254,15 @@
                             <p>詳細画面からは、編集、削除、失注処理、次期への繰越などの操作が可能です。</p>
                         </GuideSection>
                         <GuideSection title="5. ダッシュボードと目標管理">
-                            <p>画面上部のダッシュボードでは、現在の進捗状況を視覚的に確認できます。</p>
+                            <p>画面上部のダッシュボードでは、現在の進捗状況を視覚的に確認できます。「本体受注」や「S/U発注」タスクを完了させると「受注金額」に反映されます。</p>
                             <p>「目標金額」の「登録」ボタンから半期の目標金額を設定し、達成率を管理することができます。</p>
                         </GuideSection>
                          <GuideSection title="6. 絞り込みと並び替え">
                             <p>「フィルター & 並び替え」セクションを開くと、キーワードやステータスで案件を絞り込んだり、登録日や金額で並び替えたりすることができます。</p>
+                        </GuideSection>
+                         <GuideSection title="7. 分析タブ">
+                            <p>「分析」タブでは、期間内の受注状況をグラフで確認できます。ダッシュボードも表示され、全体の状況を把握しながら分析できます。</p>
+                            <p>月別グラフの「受注金額」は、登録された「受注日」を元に集計されます。「保守締結率」の円グラフでは、主要商品の保守契約状況を確認できます。</p>
                         </GuideSection>
                     </div>
                     <div className="p-6 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end">
@@ -232,9 +280,9 @@
         const getInitialState = (project = null) => {
             if (project) return { setupAmount: 0, isLost: false, ...project };
             return {
-                category: CUSTOMER_CATEGORIES[0], clientName: '', registrationDate: new Date().toISOString().split('T')[0],
+                category: CUSTOMER_CATEGORIES[0], clientName: '', officeName: '', registrationDate: new Date().toISOString().split('T')[0],
                 mainAmount: 0, projectName: '', division: DIVISIONS[0], productType: PRODUCT_TYPES[0],
-                paymentType: PAYMENT_TYPES[0], setup: SETUP_OPTIONS[0], maintenance: MAINTENANCE_OPTIONS[0], memo: '', setupAmount: 0, isLost: false,
+                paymentType: PAYMENT_TYPES[0], setup: SETUP_OPTIONS[0], maintenance: MAINTENANCE_OPTIONS[0], memo: '', setupAmount: 0, isLost: false, orderDate: null,
             };
         };
         
@@ -242,7 +290,7 @@
         const [step, setStep] = useState(1);
 
         const availableProductTypes = useMemo(() => {
-            if (formState.category === '関与先') return PRODUCT_TYPES.filter(p => p !== 'ルータ');
+            if (formState.category === '関与先') return PRODUCT_TYPES.filter(p => p !== 'ルータ' && p !== 'SI');
             return PRODUCT_TYPES;
         }, [formState.category]);
 
@@ -313,6 +361,8 @@
                         newFormState.paymentType = 'COD'; newFormState.setup = 'なし'; newFormState.maintenance = 'なし'; newFormState.setupAmount = 0;
                     } else if (value === 'ルータ' && prevFormState.category === '会計事務所') {
                         newFormState.paymentType = 'MIST'; newFormState.setup = 'あり (NSG)'; newFormState.setupAmount = 30000;
+                    } else if (value === 'SI' && prevFormState.category === '会計事務所') {
+                        newFormState.paymentType = 'MIST'; newFormState.setup = 'なし'; newFormState.maintenance = 'なし'; newFormState.setupAmount = 0;
                     }
                 } else if (name === 'setup') {
                     if (prevFormState.category === '関与先' && value === 'あり (SCG)') {
@@ -358,7 +408,11 @@
                         <form onSubmit={handleSubmit}>
                             <div className="p-6 max-h-[70vh] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                                 <div><ModalLabel htmlFor="registrationDate">登録日 <span className="text-red-500">*</span></ModalLabel><ModalInput type="date" name="registrationDate" id="registrationDate" value={formState.registrationDate} onChange={handleChange} ref={dateInputRef} required /></div>
+                                <div></div>
                                 <div><ModalLabel htmlFor="clientName">顧客名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="clientName" id="clientName" value={formState.clientName} onChange={handleChange} required /></div>
+                                {formState.category === '関与先' ? (
+                                    <div><ModalLabel htmlFor="officeName">事務所名</ModalLabel><ModalInput type="text" name="officeName" id="officeName" value={formState.officeName || ''} onChange={handleChange} /></div>
+                                ) : ( <div></div> )}
                                 <div className="md:col-span-2"><ModalLabel htmlFor="projectName">案件名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="projectName" id="projectName" value={formState.projectName} onChange={handleChange} required /></div>
                                 <div><ModalLabel htmlFor="mainAmount">本体金額 (税抜)</ModalLabel><ModalInput type="text" name="mainAmount" id="mainAmount" value={formState.mainAmount.toLocaleString()} onChange={handleAmountChange} /></div>
                                 <div><ModalLabel htmlFor="division">区分</ModalLabel><ModalSelect name="division" id="division" value={formState.division} onChange={handleChange}>{DIVISIONS.map(d => <option key={d}>{d}</option>)}</ModalSelect></div>
@@ -394,8 +448,11 @@
                     </div>
                     <div className="p-6 max-h-[70vh] overflow-y-auto">
                         <div className="mb-6 pb-6 border-b border-slate-200">
-                             <p className="text-xs text-slate-500">顧客名</p>
-                             <h4 className="text-2xl font-bold text-slate-900">{project.clientName}</h4>
+                             <p className="text-xs text-slate-500">顧客名 {project.officeName && `/ 事務所名`}</p>
+                             <h4 className="text-2xl font-bold text-slate-900">
+                                 {project.clientName}
+                                 {project.officeName && <span className="text-lg text-slate-600 font-medium ml-2">/ {project.officeName}</span>}
+                            </h4>
                              <p className="text-xs text-slate-500 mt-4">案件名</p>
                              <p className="text-lg text-slate-700 mt-1">{project.projectName}</p>
                         </div>
@@ -407,6 +464,7 @@
                             <DetailItem label="セットアップ" value={project.setup} />
                             <DetailItem label="保守契約" value={project.maintenance} />
                             <DetailItem label="登録日" value={new Date(project.registrationDate).toLocaleDateString('ja-JP')} />
+                            <DetailItem label="受注日" value={project.orderDate ? new Date(project.orderDate).toLocaleDateString('ja-JP') : 'ー'} />
                             <div className="flex flex-col">
                                <dt className="text-xs text-slate-500">金額内訳</dt>
                                <dd className="text-sm text-slate-900 mt-1">
@@ -520,7 +578,7 @@
           
           const isLost = project.isLost;
           const isCompleted = !isLost && completedVisibleTasks.length === visibleTasks.length;
-          const isOrdered = !isLost && !isCompleted && project.tasks['本社発注'];
+          const isOrdered = !isLost && !isCompleted && project.tasks['本体受注'];
           const nextVisibleTask = !isLost && !isCompleted ? visibleTasks.find(task => !project.tasks[task]) : null;
 
           let status = null;
@@ -534,7 +592,10 @@
                   <div className="flex items-center gap-3 min-w-0">
                       <HankoStamp status={status} />
                       <div className="flex-grow min-w-0">
-                          <h3 className="font-bold text-slate-900 truncate text-base">{project.clientName}</h3>
+                          <h3 className="font-bold text-slate-900 truncate text-base">
+                              {project.clientName}
+                              {project.officeName && <span className="text-slate-500 text-xs font-normal ml-1">/ {project.officeName}</span>}
+                          </h3>
                           <p className="text-slate-500 text-xs mt-1 truncate">{project.projectName}</p>
                       </div>
                   </div>
@@ -551,8 +612,7 @@
                         <ChatBubbleLeftEllipsisIcon className="w-5 h-5" />
                     </button>
                 </td>
-                <td></td>{/* Spacer */}
-                {TASKS.map((task) => {
+                <td></td>{/* Spacer */}{TASKS.map((task) => {
                     const isVisible = visibleTasks.includes(task);
                     const isCompleted = project.tasks[task];
                     const isNext = task === nextVisibleTask;
@@ -569,7 +629,7 @@
                             <div className="flex justify-center items-center h-full">
                                 <TaskStatus
                                     status={taskStatus}
-                                    onClick={() => onTaskToggle(project.id, task)}
+                                    onClick={() => onTaskToggle(project, task)}
                                     disabled={isDisabled}
                                 />
                             </div>
@@ -588,15 +648,14 @@
       const ProjectTable = ({ projects, onViewDetails, onTaskToggle, onOpenMemo }) => {
         return (
             <div className="bg-white shadow-lg rounded-xl overflow-x-auto mt-6" style={{maxHeight: '70vh'}}>
-                <table className="w-full min-w-[1260px] border-collapse text-sm">
+                <table className="w-full min-w-[1320px] border-collapse text-sm">
                     <thead className="sticky-header">
                         <tr className="border-b-2 border-slate-300 text-xs font-semibold text-slate-600">
                             <th className="p-2 pl-4 text-left w-[25%]">顧客・案件名</th>
                             <th className="p-2 text-center w-[8%]">登録日</th>
                             <th className="p-2 text-right w-[10%]">金額 (総額)</th>
                             <th className="p-2 text-center w-[5%]">メモ</th>
-                            <th className="w-[2%]"></th> {/* Spacer */}
-                            {TASKS.map(task => (
+                            <th className="w-[2%]"></th>{/* Spacer */}{TASKS.map(task => (
                                 <th key={task} className="p-1 text-center text-[10px] leading-tight break-words w-[4%]">{task}</th>
                             ))}
                             <th className="p-2 text-center w-[5%]">詳細</th>
@@ -671,8 +730,15 @@
           const stats = useMemo(() => {
               const allNonLostProjects = projects.filter(p => !p.isLost);
               const totalAmount = allNonLostProjects.reduce((sum, p) => sum + p.mainAmount + (p.setupAmount || 0), 0);
-              const orderedProjects = allNonLostProjects.filter(p => p.tasks['本社発注']);
-              const orderedAmount = orderedProjects.reduce((sum, p) => sum + p.mainAmount + (p.setupAmount || 0), 0);
+              
+              const orderedAmount = allNonLostProjects.reduce((sum, p) => {
+                  let projectOrderedAmount = 0;
+                  if (p.tasks['本体受注']) projectOrderedAmount += p.mainAmount;
+                  if (p.tasks['S/U発注']) projectOrderedAmount += (p.setupAmount || 0);
+                  return sum + projectOrderedAmount;
+              }, 0);
+
+              const orderedProjects = allNonLostProjects.filter(p => p.tasks['本体受注'] || p.tasks['S/U発注']);
               const achievementRate = goalAmount > 0 ? (orderedAmount / goalAmount) * 100 : 0;
               return { totalAmount, orderedAmount, achievementRate, orderedProjectsCount: orderedProjects.length, totalProjectsCount: allNonLostProjects.length };
           }, [projects, goalAmount]);
@@ -729,6 +795,224 @@
           );
       };
 
+      const ChartComponent = ({ type, data, options }) => {
+        const canvasRef = useRef(null);
+        const chartRef = useRef(null);
+    
+        useEffect(() => {
+            if (chartRef.current) {
+                chartRef.current.destroy();
+            }
+            if (!canvasRef.current) return;
+            
+            const ctx = canvasRef.current.getContext('2d');
+            chartRef.current = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+            
+            return () => {
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+            };
+        }, [type, data, options]);
+    
+        return <canvas ref={canvasRef}></canvas>;
+      };
+
+      const AnalysisView = ({ projects, period }) => {
+        const [maintenanceFilter, setMaintenanceFilter] = useState('全体');
+
+        const analysisData = useMemo(() => {
+          const nonLostProjects = projects.filter(p => !p.isLost);
+
+          // Generate all month labels for the period
+          const allMonthLabels = [];
+          if (period) {
+              let currentDate = new Date(period.startDate);
+              const endDate = new Date(period.endDate);
+              while (currentDate <= endDate) {
+                  allMonthLabels.push(`${currentDate.getFullYear()}/${String(currentDate.getMonth() + 1).padStart(2, '0')}`);
+                  currentDate.setMonth(currentDate.getMonth() + 1);
+              }
+          }
+
+          const monthlyOrdered = allMonthLabels.reduce((acc, label) => ({ ...acc, [label]: 0 }), {});
+          const monthlyPotential = allMonthLabels.reduce((acc, label) => ({ ...acc, [label]: 0 }), {});
+          const monthlyOrderedCounts = allMonthLabels.reduce((acc, label) => ({ ...acc, [label]: 0 }), {});
+          const monthlyPotentialCounts = allMonthLabels.reduce((acc, label) => ({ ...acc, [label]: 0 }), {});
+
+          nonLostProjects.forEach(p => {
+              const registrationDate = new Date(p.registrationDate);
+              const registrationMonthKey = `${registrationDate.getFullYear()}/${String(registrationDate.getMonth() + 1).padStart(2, '0')}`;
+              const orderDate = p.orderDate ? new Date(p.orderDate) : null;
+              
+              // Ordered Amount
+              let projectOrderedAmount = 0;
+              if (p.tasks['本体受注']) projectOrderedAmount += p.mainAmount;
+              if (p.tasks['S/U発注']) projectOrderedAmount += (p.setupAmount || 0);
+
+              if (projectOrderedAmount > 0) {
+                const monthKey = orderDate ? `${orderDate.getFullYear()}/${String(orderDate.getMonth() + 1).padStart(2, '0')}` : registrationMonthKey;
+                if(monthlyOrdered.hasOwnProperty(monthKey)) {
+                    monthlyOrdered[monthKey] += projectOrderedAmount;
+                    monthlyOrderedCounts[monthKey]++;
+                }
+              }
+
+              // Potential Amount
+              let projectPotentialAmount = 0;
+              if (!p.tasks['本体受注']) projectPotentialAmount += p.mainAmount;
+              if (!p.tasks['S/U発注'] && (p.setupAmount || 0) > 0) projectPotentialAmount += (p.setupAmount || 0);
+
+              if(projectPotentialAmount > 0) {
+                if(monthlyPotential.hasOwnProperty(registrationMonthKey)){
+                    monthlyPotential[registrationMonthKey] += projectPotentialAmount;
+                    monthlyPotentialCounts[registrationMonthKey]++;
+                }
+              }
+          });
+
+          const monthlyData = {
+              labels: allMonthLabels,
+              datasets: [
+                  { label: '受注金額', data: allMonthLabels.map(k => monthlyOrdered[k]), counts: allMonthLabels.map(k => monthlyOrderedCounts[k]), backgroundColor: '#3b82f6' },
+                  { label: '未受注金額', data: allMonthLabels.map(k => monthlyPotential[k]), counts: allMonthLabels.map(k => monthlyPotentialCounts[k]), backgroundColor: '#94a3b8' }
+              ]
+          };
+
+          const byProduct = nonLostProjects.reduce((acc, p) => {
+              const key = p.productType;
+              if (!acc[key]) acc[key] = { orderedTotal: 0, orderedCount: 0, potentialTotal: 0, potentialCount: 0 };
+              
+              const orderedAmount = (p.tasks['本体受注'] ? p.mainAmount : 0) + (p.tasks['S/U発注'] ? (p.setupAmount || 0) : 0);
+              const potentialAmount = (!p.tasks['本体受注'] ? p.mainAmount : 0) + (!p.tasks['S/U発注'] ? (p.setupAmount || 0) : 0);
+              
+              if (orderedAmount > 0) { acc[key].orderedTotal += orderedAmount; acc[key].orderedCount++; }
+              if (potentialAmount > 0) { acc[key].potentialTotal += potentialAmount; acc[key].potentialCount++; }
+              return acc;
+          }, {});
+          
+          const sortedProductEntries = Object.entries(byProduct).sort(([, a], [, b]) => (b.orderedTotal + b.potentialTotal) - (a.orderedTotal + a.potentialTotal));
+          
+          const productData = {
+              labels: sortedProductEntries.map(([label]) => label),
+              datasets: [
+                  { label: '受注金額', data: sortedProductEntries.map(([, { orderedTotal }]) => orderedTotal), counts: sortedProductEntries.map(([, { orderedCount }]) => orderedCount), backgroundColor: '#3b82f6' },
+                  { label: '未受注金額', data: sortedProductEntries.map(([, { potentialTotal }]) => potentialTotal), counts: sortedProductEntries.map(([, { potentialCount }]) => potentialCount), backgroundColor: '#94a3b8' }
+              ]
+          };
+
+          return { monthly: monthlyData, product: productData };
+        }, [projects, period]);
+
+         const maintenanceChartData = useMemo(() => {
+            const relevantProductTypes = ['PC', 'プリンタ', 'ルータ'];
+            const filteredProjects = projects
+                .filter(p => p.tasks['本体受注'])
+                .filter(p => {
+                    if (maintenanceFilter === '全体') {
+                        return relevantProductTypes.includes(p.productType);
+                    }
+                    return p.productType === maintenanceFilter;
+                });
+            
+            const withMaintenance = filteredProjects.filter(p => p.maintenance === 'あり').length;
+            const withoutMaintenance = filteredProjects.length - withMaintenance;
+            const total = filteredProjects.length;
+
+            return {
+                labels: ['保守あり', '保守なし'],
+                datasets: [{
+                    data: [withMaintenance, withoutMaintenance],
+                    backgroundColor: ['#3b82f6', '#94a3b8'],
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                }],
+                total,
+            };
+        }, [projects, maintenanceFilter]);
+
+        if (projects.filter(p => !p.isLost).length === 0) {
+          return (
+            <div className="bg-white shadow-lg rounded-xl p-12 text-center text-slate-500 mt-6">
+              <h3 className="text-lg font-semibold">分析対象のデータがありません</h3>
+              <p className="mt-2 text-sm">案件を登録してください。</p>
+            </div>
+          );
+        }
+
+        const tooltipCallbacks = {
+          label: (context) => {
+            let label = context.dataset.label || '';
+            let value = context.parsed;
+            if (context.dataset.indexAxis === 'y') {
+                value = context.parsed.x;
+            }
+            return `${label}: ${Number(value).toLocaleString()}円`;
+          },
+          afterLabel: (context) => {
+            const count = context.dataset.counts[context.dataIndex];
+            return `件数: ${count}件`;
+          },
+        };
+
+        const commonChartOptions = {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: true, position: 'top' }, tooltip: { callbacks: tooltipCallbacks, mode: 'index', intersect: false } },
+          interaction: { intersect: false, mode: 'index' },
+          scales: { x: { stacked: false }, y: { stacked: false, ticks: { callback: value => `${(value / 10000)}万円` } } },
+        };
+        
+        const horizontalChartOptions = { ...commonChartOptions, indexAxis: 'y', scales: { y: { stacked: false }, x: { stacked: false, ticks: { callback: value => `${(value / 10000)}万円` } } }};
+        const doughnutChartOptions = {
+            responsive: true, maintainAspectRatio: false, cutout: '70%',
+            plugins: { legend: { display: true, position: 'bottom' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${c.raw}件` } } }
+        };
+
+        return (
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="lg:col-span-2 bg-white shadow-lg rounded-xl p-6">
+                <h3 className="font-bold text-slate-800 mb-4">月次売上分析 (受注・未受注)</h3>
+                <div className="h-80"><ChartComponent type="bar" data={analysisData.monthly} options={commonChartOptions} /></div>
+              </div>
+
+              <div className="bg-white shadow-lg rounded-xl p-6">
+                <h3 className="font-bold text-slate-800 mb-4">商品種別ごとの売上分析</h3>
+                <div className="h-96"><ChartComponent type="bar" data={analysisData.product} options={horizontalChartOptions} /></div>
+              </div>
+
+              <div className="bg-white shadow-lg rounded-xl p-6">
+                <h3 className="font-bold text-slate-800 mb-4">保守締結率</h3>
+                <div className="flex justify-center mb-2">
+                    <div className="flex p-1 space-x-1 bg-slate-200/70 rounded-lg">
+                        {['全体', 'PC', 'プリンタ', 'ルータ'].map(item => (
+                            <button key={item} onClick={() => setMaintenanceFilter(item)} className={`px-4 py-1 text-xs font-semibold transition-colors rounded-md ${maintenanceFilter === item ? 'bg-white text-blue-600 shadow' : 'text-slate-600 hover:bg-slate-100'}`}>
+                                {item}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                {maintenanceChartData.total > 0 ? (
+                    <div className="h-96 relative flex justify-center items-center -mt-4">
+                        <ChartComponent type="doughnut" data={maintenanceChartData} options={doughnutChartOptions} />
+                        <div className="absolute text-center pointer-events-none">
+                            <div className="text-4xl font-bold text-slate-800">
+                                {((maintenanceChartData.datasets[0].data[0] / maintenanceChartData.total) * 100).toFixed(1)}%
+                            </div>
+                            <div className="text-sm text-slate-500">締結率 ({maintenanceChartData.datasets[0].data[0]} / {maintenanceChartData.total}件)</div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="h-96 flex items-center justify-center text-slate-500">対象の受注済み案件がありません</div>
+                )}
+              </div>
+          </div>
+        );
+      };
+
       const App = () => {
           const periodData = usePeriodCalculator();
           const { selectedPeriod, setSelectedPeriod, getCurrentPeriod, periods } = periodData;
@@ -752,10 +1036,9 @@
                 
                 setAllData(prevData => {
                   const migratedData = {
-                      projects: JSON.parse(oldProjectsJSON),
+                      projects: JSON.parse(oldProjectsJSON).map(p => ({ orderDate: null, ...p })), // Add orderDate field
                       goalAmount: oldGoalJSON ? Number(JSON.parse(oldGoalJSON)) : 10000000
                   };
-                  // Avoid overwriting if new data for the period already exists
                   if (!prevData[currentPeriodValue]) {
                       return { ...prevData, [currentPeriodValue]: migratedData };
                   }
@@ -806,11 +1089,14 @@
           const [viewingProject, setViewingProject] = useState(null);
           const [memoModalProject, setMemoModalProject] = useState(null);
           const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+          const [orderDateModalState, setOrderDateModalState] = useState({ isOpen: false, project: null, taskName: null });
+
           const initialFilters = { keyword: '', status: 'すべて', customerCategory: 'すべて' };
           const [filters, setFilters] = useState(initialFilters);
           const [sortKey, setSortKey] = useState('registrationDate_asc');
           const [isFilterVisible, setIsFilterVisible] = useState(false);
           const [confirmation, setConfirmation] = useState({ isOpen: false, title: '', message: '', onConfirm: null, onCancel: null });
+          const [activeTab, setActiveTab] = useState('details');
           
           const handleSaveProject = (projectData) => {
               setProjectsForCurrentPeriod(prevProjects => {
@@ -868,11 +1154,32 @@
                   onCancel: () => setConfirmation({ isOpen: false })
               });
           };
+          
+          const handleSaveOrderDate = (date) => {
+            const { project, taskName } = orderDateModalState;
+            setProjectsForCurrentPeriod(prevProjects => prevProjects.map(p => {
+                if (p.id === project.id) {
+                    return { ...p, tasks: { ...p.tasks, [taskName]: true }, orderDate: date };
+                }
+                return p;
+            }));
+            setOrderDateModalState({ isOpen: false, project: null, taskName: null });
+          };
 
-          const handleTaskToggle = (projectId, taskName) => {
+          const handleTaskToggle = (project, taskName) => {
+              if (project.isLost) return;
+
+              if (taskName === '本体受注' && !project.tasks[taskName]) {
+                  setOrderDateModalState({ isOpen: true, project: project, taskName: taskName });
+                  return; 
+              }
+
               setProjectsForCurrentPeriod(prevProjects => prevProjects.map(p => {
-                  if (p.id === projectId && !p.isLost) {
+                  if (p.id === project.id) {
                       const newTasks = { ...p.tasks, [taskName]: !p.tasks[taskName] };
+                      if (taskName === '本体受注' && p.tasks[taskName]) { // unchecking
+                          return { ...p, tasks: newTasks, orderDate: null };
+                      }
                       return { ...p, tasks: newTasks };
                   }
                   return p;
@@ -886,7 +1193,7 @@
                     const newProject = {
                         ...project, id: Date.now(), registrationDate: new Date().toISOString().split('T')[0],
                         tasks: TASKS.reduce((acc, task) => ({...acc, [task]: false}), {}),
-                        isLost: false, memo: `(繰越元: ${project.registrationDate} ${project.projectName})\n${project.memo}`
+                        isLost: false, orderDate: null, memo: `(繰越元: ${project.registrationDate} ${project.projectName})\n${project.memo}`
                     };
                     setProjectsForCurrentPeriod(prev => [...prev, newProject]);
                     setConfirmation({isOpen: false});
@@ -913,13 +1220,14 @@
               let result = projects.filter(p => {
                     const keywordMatch = filters.keyword === '' || 
                         p.clientName.toLowerCase().includes(filters.keyword.toLowerCase()) || 
-                        p.projectName.toLowerCase().includes(filters.keyword.toLowerCase());
+                        p.projectName.toLowerCase().includes(filters.keyword.toLowerCase()) ||
+                        (p.officeName && p.officeName.toLowerCase().includes(filters.keyword.toLowerCase()));
 
                     const visibleTasks = getVisibleTasks(p);
                     const isCompleted = visibleTasks.every(task => p.tasks[task]);
 
                     const statusMatch = filters.status === 'すべて' ? true :
-                        filters.status === '受注済み' ? p.tasks['本社発注'] && !isCompleted && !p.isLost :
+                        filters.status === '受注済み' ? p.tasks['本体受注'] && !isCompleted && !p.isLost :
                         filters.status === '完了済み' ? isCompleted && !p.isLost :
                         filters.status === '失注' ? p.isLost : false;
                     
@@ -946,6 +1254,14 @@
               return result;
           }, [projects, filters, sortKey]);
 
+          const TabButton = ({ tabName, label }) => {
+            const isActive = activeTab === tabName;
+            const classes = `px-6 py-2 text-sm font-semibold transition-colors rounded-md ${isActive ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-100'}`;
+            return <button onClick={() => setActiveTab(tabName)} className={classes}>{label}</button>;
+          };
+          
+          const currentPeriodObject = useMemo(() => periods.find(p => p.value === selectedPeriod), [periods, selectedPeriod]);
+
           return (
               <div className="container mx-auto p-4 md:p-8 max-w-full">
                   <header className="flex flex-wrap items-center justify-between gap-y-4 mb-6">
@@ -968,44 +1284,59 @@
                         </button>
                       </div>
                   </header>
-                  
-                  <Dashboard 
-                    projects={projects} 
-                    goalAmount={goalAmount} 
-                    setGoalAmount={setGoalAmountForCurrentPeriod} 
-                  />
 
-                  <div className="bg-white shadow-lg rounded-xl">
-                      <button onClick={() => setIsFilterVisible(!isFilterVisible)} className="w-full flex justify-between items-center font-bold text-lg text-slate-800 p-6">
-                          <span>フィルター & 並び替え</span>
-                          <ChevronUpIcon className={`w-6 h-6 transform transition-transform ${isFilterVisible ? '' : 'rotate-180'}`} />
-                      </button>
-                      <div className={`filter-content ${isFilterVisible ? 'open' : ''}`}>
-                          <div className="p-6 pt-0 border-t border-slate-200">
-                            <div className="space-y-4 pt-6">
-                                <div>
-                                    <Label htmlFor="keywordFilter">キーワード (顧客名, 案件名)</Label>
-                                    <Input type="text" id="keywordFilter" name="keyword" value={filters.keyword} onChange={handleFilterChange} placeholder="キーワードで検索..." />
-                                </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div><Label>ステータス</Label><Select name="status" value={filters.status} onChange={handleFilterChange}>{STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}</Select></div>
-                                    <div><Label>顧客種別</Label><Select name="customerCategory" value={filters.customerCategory} onChange={handleFilterChange}><option value="すべて">すべて</option>{CUSTOMER_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</Select></div>
-                                    <div><Label>並び順</Label><Select name="sortKey" value={sortKey} onChange={e => setSortKey(e.target.value)}>{Object.entries(SORT_OPTIONS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></div>
-                                    <div className="flex items-end">
-                                      <button onClick={handleResetFilters} className="w-full px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">リセット</button>
+                   <Dashboard 
+                        projects={projects} 
+                        goalAmount={goalAmount} 
+                        setGoalAmount={setGoalAmountForCurrentPeriod} 
+                      />
+                  
+                   <nav className="flex justify-center mb-6">
+                        <div className="flex p-1 space-x-1 bg-slate-200/70 rounded-lg border border-slate-300/50">
+                            <TabButton tabName="details" label="明細" />
+                            <TabButton tabName="analysis" label="分析" />
+                        </div>
+                   </nav>
+
+                  {activeTab === 'details' && (
+                    <>
+                      <div className="bg-white shadow-lg rounded-xl">
+                          <button onClick={() => setIsFilterVisible(!isFilterVisible)} className="w-full flex justify-between items-center font-bold text-lg text-slate-800 p-6">
+                              <span>フィルター & 並び替え</span>
+                              <ChevronUpIcon className={`w-6 h-6 transform transition-transform ${isFilterVisible ? '' : 'rotate-180'}`} />
+                          </button>
+                          <div className={`filter-content ${isFilterVisible ? 'open' : ''}`}>
+                              <div className="p-6 pt-0 border-t border-slate-200">
+                                <div className="space-y-4 pt-6">
+                                    <div>
+                                        <Label htmlFor="keywordFilter">キーワード (顧客名, 事務所名, 案件名)</Label>
+                                        <Input type="text" id="keywordFilter" name="keyword" value={filters.keyword} onChange={handleFilterChange} placeholder="キーワードで検索..." />
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div><Label>ステータス</Label><Select name="status" value={filters.status} onChange={handleFilterChange}>{STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}</Select></div>
+                                        <div><Label>顧客種別</Label><Select name="customerCategory" value={filters.customerCategory} onChange={handleFilterChange}><option value="すべて">すべて</option>{CUSTOMER_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</Select></div>
+                                        <div><Label>並び順</Label><Select name="sortKey" value={sortKey} onChange={e => setSortKey(e.target.value)}>{Object.entries(SORT_OPTIONS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></div>
+                                        <div className="flex items-end">
+                                          <button onClick={handleResetFilters} className="w-full px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">リセット</button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                              </div>
                           </div>
                       </div>
-                  </div>
 
-                  <ProjectTable 
-                      projects={filteredAndSortedProjects}
-                      onViewDetails={setViewingProject}
-                      onTaskToggle={handleTaskToggle}
-                      onOpenMemo={setMemoModalProject}
-                  />
+                      <ProjectTable 
+                          projects={filteredAndSortedProjects}
+                          onViewDetails={setViewingProject}
+                          onTaskToggle={handleTaskToggle}
+                          onOpenMemo={setMemoModalProject}
+                      />
+                    </>
+                  )}
+
+                  {activeTab === 'analysis' && (
+                     <AnalysisView projects={projects} period={currentPeriodObject} />
+                  )}
 
                   <NewProjectModal 
                       isOpen={isModalOpen}
@@ -1037,6 +1368,12 @@
                       project={memoModalProject}
                       onClose={() => setMemoModalProject(null)}
                       onSave={handleSaveMemo}
+                  />
+                  <OrderDateModal
+                      isOpen={orderDateModalState.isOpen}
+                      defaultDate={orderDateModalState.project?.orderDate}
+                      onClose={() => setOrderDateModalState({ isOpen: false, project: null, taskName: null })}
+                      onConfirm={handleSaveOrderDate}
                   />
                    <GuideModal 
                       isOpen={isGuideModalOpen} 
