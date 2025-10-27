@@ -93,6 +93,7 @@
         }
       ];
       const SI_PRODUCTS_MAP = new Map(SI_PRODUCTS.flatMap(cat => cat.items).map(item => [item.id, item]));
+      const RANKS = ['S', 'A', 'B', 'C', 'D'];
 
       const JAPANESE_HOLIDAYS = new Set([
         // 2025
@@ -128,6 +129,20 @@
         const isCompleted = visibleTasks.every(task => project.tasks[task]);
         if (isCompleted) return 2; // 完了
         return 1; // 進行中 (受注済みと未受注を統合)
+      };
+
+      const getNegoRank = (p) => {
+          const visibleTasks = getVisibleTasks(p);
+          if (p.isLost) return null;
+          const isCompleted = visibleTasks.every(task => p.tasks[task]);
+
+          if (isCompleted) return { rank: 'S', color: 'bg-purple-600' };
+          if (p.tasks['本体受注']) return { rank: 'A', color: 'bg-red-500' };
+          if (p.tasks['見積提示']) return { rank: 'B', color: 'bg-teal-500' };
+          if (p.tasks['ネゴ提案'] || !visibleTasks.includes('ネゴ提案')) {
+              return { rank: 'C', color: 'bg-amber-500' };
+          }
+          return { rank: 'D', color: 'bg-slate-500' };
       };
 
       // --- ICONS ---
@@ -368,6 +383,7 @@
       
       const ImportModal = ({ isOpen, onClose, onImport }) => {
         const [textData, setTextData] = useState('');
+        const [mode, setMode] = useState('add'); // 'add', 'update', 'delete'
 
         if (!isOpen) return null;
 
@@ -376,7 +392,7 @@
                 alert('登録するデータを貼り付けてください。');
                 return;
             }
-            onImport(textData);
+            onImport(textData, mode);
             onClose();
         };
 
@@ -384,12 +400,22 @@
             <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
                     <div className="p-6 border-b border-slate-200">
-                        <h3 className="text-lg font-bold text-slate-800">テキストデータで一括登録</h3>
+                        <h3 className="text-lg font-bold text-slate-800">テキストデータで一括操作</h3>
                     </div>
                     <div className="p-6">
-                        <p className="mt-2 text-sm text-slate-600">
+                        <div className="mb-4">
+                            <div className="text-sm font-medium text-slate-700 mb-2">操作を選択してください</div>
+                            <div className="flex p-1 space-x-1 bg-slate-200/70 rounded-lg">
+                                <button onClick={() => setMode('add')} className={`flex-1 px-3 py-2 text-sm font-semibold transition-colors rounded-md ${mode === 'add' ? 'bg-white text-blue-600 shadow' : 'text-slate-600 hover:bg-slate-100'}`}>追加登録</button>
+                                <button onClick={() => setMode('update')} className={`flex-1 px-3 py-2 text-sm font-semibold transition-colors rounded-md ${mode === 'update' ? 'bg-white text-blue-600 shadow' : 'text-slate-600 hover:bg-slate-100'}`}>上書き更新</button>
+                                <button onClick={() => setMode('delete')} className={`flex-1 px-3 py-2 text-sm font-semibold transition-colors rounded-md ${mode === 'delete' ? 'bg-white text-blue-600 shadow' : 'text-slate-600 hover:bg-slate-100'}`}>一括削除</button>
+                            </div>
+                        </div>
+
+                        <p className="mt-4 text-sm text-slate-600">
                             スプレッドシートなどからコピーしたタブ区切りのデータを貼り付けてください。<br/>
-                            データの1行目が、コピー元の13行目（項目名の次）に対応するようにしてください。
+                            1行目がコピー元の13行目（項目名の次）に対応するようにしてください。<br/>
+                            <strong className="text-red-600">※更新・削除を行うには、データに「顧客名」「案件名」が含まれている必要があります。</strong>
                         </p>
                         <textarea 
                             value={textData}
@@ -400,7 +426,7 @@
                     </div>
                     <div className="px-6 py-4 bg-slate-50 flex justify-end items-center space-x-3 rounded-b-lg">
                         <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">キャンセル</button>
-                        <button onClick={handleImportClick} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">登録する</button>
+                        <button onClick={handleImportClick} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">実行する</button>
                     </div>
                 </div>
             </div>
@@ -810,20 +836,6 @@
       };
 
       const NegoRankBadge = ({ project }) => {
-          const getNegoRank = (p) => {
-              const visibleTasks = getVisibleTasks(p);
-              if (p.isLost) return null;
-              const isCompleted = visibleTasks.every(task => p.tasks[task]);
-
-              if (isCompleted) return { rank: 'S', color: 'bg-purple-600' };
-              if (p.tasks['本体受注']) return { rank: 'A', color: 'bg-blue-600' };
-              if (p.tasks['見積提示']) return { rank: 'B', color: 'bg-teal-500' };
-              if (p.tasks['ネゴ提案'] || !visibleTasks.includes('ネゴ提案')) {
-                  return { rank: 'C', color: 'bg-amber-500' };
-              }
-              return { rank: 'D', color: 'bg-slate-500' };
-          };
-
           const rankInfo = getNegoRank(project);
 
           if (!rankInfo) {
@@ -831,7 +843,7 @@
           }
 
           return (
-              <div title={`ランク: ${rankInfo.rank}`} className={`flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm text-white ${rankInfo.color}`}>
+              <div title={`ランク: ${rankInfo.rank}`} className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm text-white ${rankInfo.color}`}>
                   {rankInfo.rank}
               </div>
           );
@@ -855,6 +867,7 @@
             <tr className={`hover:bg-slate-50 transition-colors duration-200 ${project.isLost ? 'opacity-60 grayscale' : ''}`}>
                 <td className="p-2 pl-4">
                   <div className="flex items-center gap-3 min-w-0">
+                      <NegoRankBadge project={project} />
                       <HankoStamp status={status} />
                       <div className="flex-grow min-w-0">
                           <h3 className="font-bold text-slate-900 truncate text-base">
@@ -877,9 +890,6 @@
                     <button onClick={() => onOpenMemo(project)} className={`p-2 rounded-full transition-colors ${project.memo ? 'text-blue-600 bg-blue-100 hover:bg-blue-200' : 'text-slate-400 hover:bg-slate-200 hover:text-slate-600'}`} title="メモ">
                         <ChatBubbleLeftEllipsisIcon className="w-5 h-5" />
                     </button>
-                </td>
-                <td className="p-2 text-center">
-                    <NegoRankBadge project={project} />
                 </td>
                 <td></td>{/* Spacer */}{TASKS.map((task) => {
                     const isVisible = visibleTasks.includes(task);
@@ -921,12 +931,11 @@
                 <table className="w-full min-w-[1400px] border-collapse text-sm">
                     <thead className="sticky-header">
                         <tr className="border-b-2 border-slate-300 text-xs font-semibold text-slate-600">
-                            <th className="p-2 pl-4 text-left w-[20%]">顧客・案件名</th>
+                            <th className="p-2 pl-4 text-left w-[24%]">顧客・案件名</th>
                             <th className="p-2 text-center w-[7%]">登録日</th>
                             <th className="p-2 text-left w-[7%]">商品種別</th>
-                            <th className="p-2 text-right w-[9%]">金額 (総額)</th>
-                            <th className="p-2 text-center w-[4%]">メモ</th>
-                            <th className="p-2 text-center w-[4%]">ランク</th>
+                            <th className="p-2 text-right w-[8%]">金額 (総額)</th>
+                            <th className="p-2 text-center w-[5%]">メモ</th>
                             <th className="w-[1%]"></th>{/* Spacer */}{TASKS.map(task => (
                                 <th key={task} className="p-1 text-center text-[10px] leading-tight break-words w-[4%]">{task}</th>
                             ))}
@@ -938,7 +947,7 @@
                             projects.map(project => <ProjectCard key={project.id} {...{ project, onViewDetails, onTaskToggle, onOpenMemo }} />)
                         ) : (
                              <tr>
-                                 <td colSpan={TASKS.length + 8} className="p-12 text-center text-slate-500">
+                                 <td colSpan={TASKS.length + 7} className="p-12 text-center text-slate-500">
                                     <h3 className="text-lg font-semibold">案件がありません</h3>
                                     <p className="mt-2 text-sm">右上の「新規案件」ボタンから新しい案件を登録してください。</p>
                                  </td>
@@ -1824,7 +1833,7 @@
           const [isImportModalOpen, setIsImportModalOpen] = useState(false);
           const [dateEntryModalState, setDateEntryModalState] = useState({ isOpen: false, project: null, taskName: null });
 
-          const initialFilters = { keyword: '', status: 'すべて', customerCategory: 'すべて' };
+          const initialFilters = { keyword: '', status: 'すべて', customerCategory: 'すべて', ranks: [] };
           const [filters, setFilters] = useState(initialFilters);
           const [sortKey, setSortKey] = useState('registrationDate_asc');
           const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -1851,75 +1860,95 @@
               setEditingProject(null);
           };
           
-          const handleImportProjects = (textData, periodStartDate) => {
-            const lines = textData.split('\n').filter(line => line.trim() !== '');
-            const newProjects = [];
-            let skippedCount = 0;
+          const handleBulkOperation = (textData, mode, periodStartDate) => {
+                const lines = textData.split('\n').filter(line => line.trim() !== '');
+                if (lines.length === 0) return;
 
-            const COL_MAP = { category: 6, officeName: 8, clientName: 11, productType: 12, mainAmount: 14, memo: 15, division: 16 };
-            
-            lines.forEach((line, index) => {
-                const columns = line.split('\t');
+                const COL_MAP = { category: 6, officeName: 8, projectName: 10, clientName: 11, productType: 12, mainAmount: 14, memo: 15, division: 16 };
+                const getProjectKey = (p) => `${p.clientName?.trim()}|${p.projectName?.trim()}`;
+                const getTextKey = (cols) => `${cols[COL_MAP.clientName]?.trim()}|${cols[COL_MAP.projectName]?.trim()}`;
 
-                if (columns.length < 17) {
-                    console.warn(`Skipping line ${index + 1}: not enough columns.`);
-                    skippedCount++;
-                    return;
-                }
+                let successCount = 0;
+                let notFoundCount = 0;
+                let skippedCount = 0;
 
-                const productRaw = columns[COL_MAP.productType]?.trim();
-                if (productRaw === '現調費') {
-                    skippedCount++;
-                    return;
-                }
+                if (mode === 'add') {
+                    const newProjects = [];
+                    lines.forEach((line, index) => {
+                        const columns = line.split('\t');
+                        if (columns.length < 17) { skippedCount++; return; }
+                        const productRaw = columns[COL_MAP.productType]?.trim();
+                        if (productRaw === '現調費') { skippedCount++; return; }
+                        
+                        let mappedProduct;
+                        switch (productRaw) { case 'パソコン': mappedProduct = 'PC'; break; case 'プリンタ': mappedProduct = 'プリンタ'; break; case 'LAN機器': mappedProduct = 'ルータ'; break; default: mappedProduct = PRODUCT_TYPES.includes(productRaw) ? productRaw : 'その他';}
+                        let mappedCategory;
+                        const categoryRaw = columns[COL_MAP.category]?.trim();
+                        switch (categoryRaw) { case '関与先企業': mappedCategory = '関与先'; break; case '会員事務所': mappedCategory = '会計事務所'; break; default: mappedCategory = CUSTOMER_CATEGORIES[0]; }
+                        const divisionRaw = columns[COL_MAP.division]?.trim();
+                        const mappedDivision = divisionRaw === 'リプレイス' ? 'リプレイス' : '新規';
+                        const amount = parseInt(columns[COL_MAP.mainAmount]?.replace(/,/g, ''), 10) || 0;
 
-                let mappedProduct;
-                switch (productRaw) {
-                    case 'パソコン': mappedProduct = 'PC'; break;
-                    case 'プリンタ': mappedProduct = 'プリンタ'; break;
-                    case 'LAN機器': mappedProduct = 'ルータ'; break;
-                    default: mappedProduct = PRODUCT_TYPES.includes(productRaw) ? productRaw : 'その他';
+                        const project = {
+                            id: Date.now() + index, registrationDate: new Date(periodStartDate).toISOString().split('T')[0],
+                            category: mappedCategory, clientName: columns[COL_MAP.clientName]?.trim() || '名称不明', officeName: '',
+                            projectName: columns[COL_MAP.projectName]?.trim() || '名称不明※一括登録',
+                            mainAmount: amount, memo: columns[COL_MAP.memo]?.trim() || '', division: mappedDivision, productType: mappedProduct,
+                            paymentType: PAYMENT_TYPES[0], setup: SETUP_OPTIONS[0], maintenance: MAINTENANCE_OPTIONS[0], setupAmount: 0,
+                            isLost: false, orderDate: null, setupOrderDate: null, siServices: {},
+                            tasks: TASKS.reduce((acc, task) => ({ ...acc, [task]: false }), {}), needsReview: true,
+                        };
+                        if (mappedCategory === '関与先' && columns[COL_MAP.officeName]) { project.officeName = columns[COL_MAP.officeName].trim(); }
+                        newProjects.push(project);
+                    });
+                    setProjectsForCurrentPeriod(prev => [...prev, ...newProjects]);
+                    successCount = newProjects.length;
+                } else if (mode === 'update') {
+                    setProjectsForCurrentPeriod(prevProjects => {
+                        const projectsMap = new Map(prevProjects.map(p => [getProjectKey(p), p]));
+                        lines.forEach(line => {
+                            const columns = line.split('\t');
+                            if (columns.length < 17) { skippedCount++; return; }
+                            const key = getTextKey(columns);
+                            if (projectsMap.has(key)) {
+                                const existingProject = projectsMap.get(key);
+                                const productRaw = columns[COL_MAP.productType]?.trim();
+                                if (productRaw === '現調費') { skippedCount++; return; }
+
+                                const amount = parseInt(columns[COL_MAP.mainAmount]?.replace(/,/g, ''), 10) || 0;
+                                existingProject.mainAmount = amount;
+                                existingProject.memo = columns[COL_MAP.memo]?.trim() || '';
+                                existingProject.needsReview = true;
+                                successCount++;
+                            } else {
+                                notFoundCount++;
+                            }
+                        });
+                        return Array.from(projectsMap.values());
+                    });
+                } else if (mode === 'delete') {
+                    const keysToDelete = new Set();
+                    lines.forEach(line => {
+                        const columns = line.split('\t');
+                         if (columns.length < 17) { skippedCount++; return; }
+                        keysToDelete.add(getTextKey(columns));
+                    });
+
+                    setProjectsForCurrentPeriod(prev => {
+                        const originalLength = prev.length;
+                        const filtered = prev.filter(p => !keysToDelete.has(getProjectKey(p)));
+                        const deletedCount = originalLength - filtered.length;
+                        successCount = deletedCount;
+                        notFoundCount = keysToDelete.size - deletedCount;
+                        return filtered;
+                    });
                 }
                 
-                let mappedCategory;
-                const categoryRaw = columns[COL_MAP.category]?.trim();
-                switch (categoryRaw) {
-                    case '関与先企業': mappedCategory = '関与先'; break;
-                    case '会員事務所': mappedCategory = '会計事務所'; break;
-                    default: mappedCategory = CUSTOMER_CATEGORIES[0];
-                }
-
-                const divisionRaw = columns[COL_MAP.division]?.trim();
-                const mappedDivision = divisionRaw === 'リプレイス' ? 'リプレイス' : '新規';
-                
-                const amount = parseInt(columns[COL_MAP.mainAmount]?.replace(/,/g, ''), 10) || 0;
-
-                const project = {
-                    id: Date.now() + index, registrationDate: new Date(periodStartDate).toISOString().split('T')[0],
-                    category: mappedCategory, clientName: columns[COL_MAP.clientName]?.trim() || '名称不明',
-                    officeName: '', projectName: '新規ネゴ※受発注システムから一括登録',
-                    mainAmount: amount, memo: columns[COL_MAP.memo]?.trim() || '',
-                    division: mappedDivision, productType: mappedProduct,
-                    paymentType: PAYMENT_TYPES[0], setup: SETUP_OPTIONS[0],
-                    maintenance: MAINTENANCE_OPTIONS[0], setupAmount: 0,
-                    isLost: false, orderDate: null, setupOrderDate: null,
-                    siServices: {}, tasks: TASKS.reduce((acc, task) => ({ ...acc, [task]: false }), {}),
-                    needsReview: true,
-                };
-
-                if (mappedCategory === '関与先' && columns[COL_MAP.officeName]) {
-                    project.officeName = columns[COL_MAP.officeName].trim();
-                }
-
-                newProjects.push(project);
-            });
-
-            if (newProjects.length > 0) {
-                setProjectsForCurrentPeriod(prev => [...prev, ...newProjects]);
-            }
-            
-            alert(`${newProjects.length}件の案件を登録しました。\n${skippedCount > 0 ? `${skippedCount}件はスキップされました。\n` : ''}各案件の詳細を確認し、必要な情報を更新してください。`);
-          };
+                let summary = `${successCount}件の処理が完了しました。`;
+                if (notFoundCount > 0) summary += `\n${notFoundCount}件は見つかりませんでした。`;
+                if (skippedCount > 0) summary += `\n${skippedCount}件はスキップされました。`;
+                alert(summary);
+            };
 
           const handleEditProject = (project) => {
               setEditingProject(project);
@@ -2035,6 +2064,15 @@
           const handleFilterChange = (e) => {
               setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
           };
+          
+          const handleRankFilterChange = (rank) => {
+              setFilters(prev => {
+                  const newRanks = prev.ranks.includes(rank)
+                    ? prev.ranks.filter(r => r !== rank)
+                    : [...prev.ranks, rank];
+                  return { ...prev, ranks: newRanks };
+              });
+          };
 
           const handleResetFilters = () => {
               setFilters(initialFilters);
@@ -2133,8 +2171,11 @@
                         filters.status === '失注' ? p.isLost : false;
                     
                     const categoryMatch = filters.customerCategory === 'すべて' || p.category === filters.customerCategory;
+
+                    const projectRank = getNegoRank(p)?.rank;
+                    const rankMatch = filters.ranks.length === 0 || (projectRank && filters.ranks.includes(projectRank));
                     
-                    return keywordMatch && statusMatch && categoryMatch;
+                    return keywordMatch && statusMatch && categoryMatch && rankMatch;
               });
 
               result.sort((a, b) => {
@@ -2184,7 +2225,7 @@
                         </div>
                         <button onClick={() => setIsImportModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-100 transition-colors">
                             <ArrowUpTrayIcon className="w-5 h-5" />
-                            <span>一括登録</span>
+                            <span>一括操作</span>
                         </button>
                         <button onClick={() => { setEditingProject(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition-colors">
                             <PlusIcon className="w-5 h-5" />
@@ -2220,13 +2261,25 @@
                                         <Label htmlFor="keywordFilter">キーワード (顧客名, 事務所名, 案件名)</Label>
                                         <Input type="text" id="keywordFilter" name="keyword" value={filters.keyword} onChange={handleFilterChange} placeholder="キーワードで検索..." />
                                     </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div><Label>ステータス</Label><Select name="status" value={filters.status} onChange={handleFilterChange}>{STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}</Select></div>
                                         <div><Label>顧客種別</Label><Select name="customerCategory" value={filters.customerCategory} onChange={handleFilterChange}><option value="すべて">すべて</option>{CUSTOMER_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</Select></div>
-                                        <div><Label>並び順</Label><Select name="sortKey" value={sortKey} onChange={e => setSortKey(e.target.value)}>{Object.entries(SORT_OPTIONS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></div>
-                                        <div className="flex items-end">
-                                          <button onClick={handleResetFilters} className="w-full px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">リセット</button>
+                                    </div>
+                                    <div>
+                                        <Label>ランク</Label>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {RANKS.map(rank => (
+                                                <button key={rank} onClick={() => handleRankFilterChange(rank)} className={`px-4 py-1 text-sm font-semibold rounded-full border-2 transition-colors ${filters.ranks.includes(rank) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'}`}>
+                                                    {rank}
+                                                </button>
+                                            ))}
                                         </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                      <div><Label>並び順</Label><Select name="sortKey" value={sortKey} onChange={e => setSortKey(e.target.value)}>{Object.entries(SORT_OPTIONS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></div>
+                                      <div className="flex items-end">
+                                        <button onClick={handleResetFilters} className="w-full px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">リセット</button>
+                                      </div>
                                     </div>
                                 </div>
                               </div>
@@ -2300,7 +2353,7 @@
                    <ImportModal
                        isOpen={isImportModalOpen}
                        onClose={() => setIsImportModalOpen(false)}
-                       onImport={(textData) => handleImportProjects(textData, currentPeriodObject.startDate)}
+                       onImport={(textData, mode) => handleBulkOperation(textData, mode, currentPeriodObject.startDate)}
                    />
               </div>
           );
