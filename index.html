@@ -47,7 +47,7 @@
         'ネゴ提案', '見積提示', '注文作成', '本体受注', 'S/U発注', '日程調整',
         '現地調整', '検収作成', '保守作成', '検収送付', '保守送付'
       ];
-      const CUSTOMER_CATEGORIES = ['会計事務所', '関与先'];
+      const CUSTOMER_CATEGORIES = ['会計事務所', '関与先', 'FX4クラウド（SI）'];
       const DIVISIONS = ['新規', 'リプレイス', 'その他'];
       const PRODUCT_TYPES = ['PC', 'スキャナ', 'プリンタ', 'ルータ', 'SI', 'その他'];
       const PAYMENT_TYPES = ['COD', 'MIST', '後払い'];
@@ -61,6 +61,39 @@
         'mainAmount_asc': '金額が低い順',
       };
       
+      const SI_PRODUCTS = [
+        {
+            category: '操作指導サービス',
+            items: [
+                { id: 'si_op_1', name: 'FX4ｸﾗｳﾄﾞ 基本ｼｽﾃﾑ操作研修･他社財務会計ｼｽﾃﾑから移行', price: 180000 },
+                { id: 'si_op_2', name: 'FX4ｸﾗｳﾄﾞ ｵﾌﾟｼｮﾝｼｽﾃﾑ操作研修', price: 45000 },
+                { id: 'si_op_3', name: '【追加料金】FX4ｸﾗｳﾄﾞ 操作研修', price: 13500 },
+                { id: 'si_op_4', name: 'ｲﾝﾎﾞｲｽ･ﾏﾈｼﾞｬｰ(FX4ｸﾗｳﾄﾞ) 仕訳生成ｵﾍﾟﾚｰｼｮﾝ研修ｻｰﾋﾞｽ', price: 90000 },
+                { id: 'si_op_5', name: 'ｲﾝﾎﾞｲｽ･ﾏﾈｼﾞｬｰ(FX4ｸﾗｳﾄﾞ) PDF､ｽｷｬﾅ等保存機能 ｵﾍﾟﾚｰｼｮﾝ研修ｻｰﾋﾞｽ', price: 90000 },
+                { id: 'si_op_6', name: 'ｲﾝﾎﾞｲｽ･ﾏﾈｼﾞｬｰ(FX4ｸﾗｳﾄﾞ) ｽﾎﾟｯﾄｻｰﾋﾞｽ', price: 45000 },
+            ],
+        },
+        {
+            category: '立上サポートサービス',
+            items: [
+                { id: 'si_su_1', name: 'FX4ｸﾗｳﾄﾞ FX2/FX3からのｼｽﾃﾑ移行支援', price: 54000 },
+                { id: 'si_su_2', name: 'FX4ｸﾗｳﾄﾞ ﾏｽﾀｰﾃﾝﾌﾟﾚｰﾄ作成支援(基本ｼｽﾃﾑ)', price: 180000 },
+                { id: 'si_su_3', name: 'FX4ｸﾗｳﾄﾞ ﾏｽﾀｰｾｯﾄｱｯﾌﾟ支援', price: 90000 },
+                { id: 'si_su_4', name: 'FX4ｸﾗｳﾄﾞ 過去仕訳登録･仕訳辞書作成支援', price: 90000 },
+                { id: 'si_su_5', name: 'FX4ｸﾗｳﾄﾞ ｵﾌﾟｼｮﾝｼｽﾃﾑ･ﾏｽﾀｰｾｯﾄｱｯﾌﾟ支援', price: 45000 },
+                { id: 'si_su_6', name: 'FX4ｸﾗｳﾄﾞ 他社業務ｼｽﾃﾑとの仕訳連携支援', price: 90000 },
+                { id: 'si_su_7', name: '【追加料金】FX4ｸﾗｳﾄﾞ 業務ｼｽﾃﾑとの仕訳連携', price: 13500 },
+                { id: 'si_su_8', name: 'FX4ｸﾗｳﾄﾞ ﾏﾈｼﾞﾒﾝﾄﾚﾎﾟｰﾄ設計ﾂｰﾙ帳表作成支援', price: 25000 },
+                { id: 'si_su_9', name: '【追加料金】FX4ｸﾗｳﾄﾞ ﾏﾈｼﾞﾒﾝﾄﾚﾎﾟｰﾄ設計ﾂｰﾙ帳表作成支援', price: 10000 },
+                { id: 'si_su_10', name: 'ｲﾝﾎﾞｲｽ･ﾏﾈｼﾞｬｰ(FX4ｸﾗｳﾄﾞ) ﾏｽﾀｰ登録支援ｻｰﾋﾞｽ', price: 180000 },
+                { id: 'si_su_11', name: 'ﾍﾟﾎﾟﾙｲﾝﾎﾞｲｽ送信機能 ｵﾍﾟﾚｰｼｮﾝ研修ｻｰﾋﾞｽ', price: 90000 },
+                { id: 'si_su_12', name: 'ｲﾝﾎﾞｲｽ･ﾏﾈｼﾞｬｰ(FX4ｸﾗｳﾄﾞ) 売上ﾃﾞｰﾀ読込支援ｻｰﾋﾞｽ', price: 45000 },
+                { id: 'si_su_13', name: 'ｲﾝﾎﾞｲｽ･ﾏﾈｼﾞｬｰ(FX4ｸﾗｳﾄﾞ) 仕訳生成支援ｻｰﾋﾞｽ', price: 45000 },
+            ],
+        }
+      ];
+      const SI_PRODUCTS_MAP = new Map(SI_PRODUCTS.flatMap(cat => cat.items).map(item => [item.id, item]));
+
       const JAPANESE_HOLIDAYS = new Set([
         // 2025
         '2025-01-01', '2025-01-13', '2025-02-11', '2025-02-24', '2025-03-20', '2025-04-29', '2025-05-03', '2025-05-04', '2025-05-05', '2025-05-06', '2025-07-21', '2025-08-11', '2025-09-15', '2025-09-23', '2025-10-13', '2025-11-03', '2025-11-24',
@@ -70,6 +103,9 @@
 
       // --- HELPERS ---
       const getVisibleTasks = (project) => {
+          if (project.category === 'FX4クラウド（SI）') {
+              return ['見積提示', '注文作成', '本体受注', '検収作成', '検収送付'];
+          }
           let visible = [...TASKS];
           if (project.division === '新規') {
               visible = visible.filter(t => t !== 'ネゴ提案');
@@ -108,7 +144,7 @@
       const RefreshIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-3.181-4.991-3.181-3.183a8.25 8.25 0 0 0-11.664 0l-3.181 3.183" /></svg>);
       const ChatBubbleLeftEllipsisIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" /></svg>);
       const QuestionMarkCircleIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" /></svg>);
-      const CogIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-1.007 1.11-1.226.55-.22 1.156-.22 1.706 0 .55.22 1.02.684 1.11 1.226l.08 1.161c.66.126 1.28.368 1.86.704l1.042-.46c.516-.228 1.1-.118 1.462.322.362.44.334 1.076-.082 1.462l-.46 1.042c.336.58.578 1.2.704 1.86l1.16.08c.542.09.998.56 1.226 1.11.22.55.22 1.156 0 1.706-.228.55-.684 1.02-1.226 1.11l-1.16.08c-.126.66-.368 1.28-.704 1.86l.46 1.042c.416.386.444 1.022.082 1.462-.362.44-.946.55-1.462.322l-1.042-.46c-.58.336-1.2.578-1.86.704l-.08 1.161c-.09.542-.56 1.007-1.11 1.226-.55-.22-1.156-.22-1.706 0-.55-.22-1.02-.684-1.11-1.226l-.08-1.161c-.66-.126-1.28-.368-1.86-.704l-1.042.46c-.516-.228-1.1.118-1.462-.322-.362-.44-.334-1.076.082-1.462l.46-1.042c-.336-.58-.578-1.2-.704-1.86l-1.16-.08c-.542-.09-.998-.56-1.226-1.11-.22-.55-.22-1.156 0-1.706.228.55.684-1.02-1.226 1.11l1.16-.08c.126-.66.368-1.28.704-1.86l-.46-1.042c-.416-.386-.444-1.022-.082-1.462.362-.44.946-.55 1.462-.322l1.042.46c.58-.336 1.2-.578 1.86-.704l.08-1.161zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" /></svg>);
+      const CogIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-1.007 1.11-1.226.55-.22 1.156-.22 1.706 0 .55.22 1.02.684 1.11 1.226l.08 1.161c.66.126 1.28.368 1.86.704l1.042-.46c.516-.228 1.1-.118 1.462.322.362.44.334 1.076-.082 1.462l-.46 1.042c.336.58.578 1.2.704 1.86l1.16.08c.542.09.998.56 1.226 1.11.22.55.22 1.156 0 1.706-.228.55-.684 1.02-1.226 1.11l-1.16.08c-.126.66-.368 1.28-.704 1.86l.46 1.042c.416.386.444 1.022.082 1.462-.362.44-.946.55-1.462.322l-1.042-.46c-.58.336-1.2.578-1.86.704l-.08 1.161c-.09.542-.56 1.007-1.11 1.226-.55-.22-1.156-.22-1.706 0-.55-.22-1.02-.684-1.11-1.226l-.08-1.161c-.66-.126-1.28-.368-1.86-.704l-1.042.46c-.516-.228-1.1.118-1.462-.322-.362-.44-.334-1.076.082-1.462l.46-1.042c-.336-.58-.578 1.2-.704-1.86l-1.16-.08c-.542-.09-.998.56-1.226-1.11-.22-.55-.22-1.156 0-1.706.228.55.684-1.02-1.226 1.11l1.16-.08c.126-.66.368-1.28.704-1.86l-.46-1.042c-.416-.386-.444-1.022-.082-1.462.362-.44.946-.55 1.462-.322l1.042.46c.58-.336 1.2-.578 1.86-.704l.08-1.161zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" /></svg>);
       const ArrowDownTrayIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>);
       const ArrowUpTrayIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>);
       const ExclamationTriangleIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>);
@@ -179,7 +215,7 @@
           );
       };
 
-      const OrderDateModal = ({ isOpen, defaultDate, onClose, onConfirm }) => {
+      const DateEntryModal = ({ isOpen, defaultDate, onClose, onConfirm, title, description, dateLabel }) => {
         const [date, setDate] = useState(defaultDate);
 
         useEffect(() => {
@@ -192,7 +228,7 @@
 
         const handleConfirm = () => {
             if (!date) {
-                alert('受注日を入力してください。');
+                alert(`${dateLabel}を入力してください。`);
                 return;
             }
             onConfirm(date);
@@ -202,11 +238,11 @@
             <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
                     <div className="p-6">
-                        <h3 className="text-lg font-bold text-slate-800">受注日の登録</h3>
-                        <p className="mt-2 text-sm text-slate-600">本体受注を完了にするには、受注日を登録してください。</p>
+                        <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+                        <p className="mt-2 text-sm text-slate-600">{description}</p>
                         <div className="mt-4">
-                            <ModalLabel htmlFor="orderDateInput">受注日</ModalLabel>
-                            <ModalInput type="date" id="orderDateInput" value={date} onChange={e => setDate(e.target.value)} />
+                            <ModalLabel htmlFor="entryDateInput">{dateLabel}</ModalLabel>
+                            <ModalInput type="date" id="entryDateInput" value={date} onChange={e => setDate(e.target.value)} />
                         </div>
                     </div>
                     <div className="px-6 py-4 bg-slate-50 flex justify-end items-center space-x-3 rounded-b-lg">
@@ -238,7 +274,7 @@
                     <div className="p-6 max-h-[70vh] overflow-y-auto">
                         <GuideSection title="1. 案件の登録">
                             <p>画面右上の「+ 新規案件」ボタンから新しい案件を登録します。</p>
-                            <p>顧客種別を選択後、詳細情報を入力します。「商品種別」などを選択すると、関連する項目（支払区分、保守契約など）が自動で入力されることがあります。</p>
+                            <p>顧客種別を選択後、詳細情報を入力します。「商品種別」などを選択すると、関連する項目（支払区分、保守契約など）が自動で入力されることがあります。「FX4クラウド（SI）」種別で登録した案件は「SI」として集計されます。</p>
                         </GuideSection>
                         <GuideSection title="2. タスク管理">
                             <p>案件一覧の各タスクは、クリックすることで状態を変更できます。</p>
@@ -246,7 +282,7 @@
                                 <li><span className="inline-block w-4 h-4 rounded-full bg-slate-200 align-middle mr-2"></span>: 未完了のタスク</li>
                                 <li><span className="inline-flex w-4 h-4 rounded-full bg-blue-500 items-center justify-center align-middle mr-2"><CheckIcon className="w-3 h-3 text-white"/></span>: 完了したタスク</li>
                             </ul>
-                            <p>「本体受注」タスクをクリックすると、受注日の入力が求められます。この日付が分析グラフの集計に使われます。</p>
+                            <p>「本体受注」「S/U発注」タスクをクリックすると、日付の入力が求められます。この日付が分析グラフの集計に使われます。</p>
                         </GuideSection>
                          <GuideSection title="3. メモ機能">
                             <p>案件一覧のメモアイコン <ChatBubbleLeftEllipsisIcon className="w-4 h-4 inline-block" /> をクリックすると、その案件に関するメモを自由に残せます。</p>
@@ -265,7 +301,7 @@
                         </GuideSection>
                          <GuideSection title="7. 分析タブ">
                             <p>「分析」タブでは、期間内の受注状況をグラフで確認できます。ダッシュボードも表示され、全体の状況を把握しながら分析できます。</p>
-                            <p>月別グラフの「受注金額」は、登録された「受注日」を元に集計されます。「保守締結率」の円グラフでは、主要商品の保守契約状況を確認できます。</p>
+                            <p>月別グラフの「受注金額」は、登録された「受注日」「S/U発注日」を元に集計されます。「保守締結率」の円グラフでは、主要商品の保守契約状況を確認できます。</p>
                         </GuideSection>
                          <GuideSection title="8. 設定（バックアップと復元）">
                              <p>画面右上の設定アイコン <CogIcon className="w-4 h-4 inline-block" /> から、データの管理ができます。</p>
@@ -334,11 +370,12 @@
         const dateInputRef = useRef(null);
 
         const getInitialState = (project = null) => {
-            if (project) return { setupAmount: 0, isLost: false, ...project };
+            if (project) return { setupAmount: 0, isLost: false, ...project, siServices: project.siServices || {} };
             return {
                 category: CUSTOMER_CATEGORIES[0], clientName: '', officeName: '', registrationDate: new Date().toISOString().split('T')[0],
                 mainAmount: 0, projectName: '', division: DIVISIONS[0], productType: PRODUCT_TYPES[0],
-                paymentType: PAYMENT_TYPES[0], setup: SETUP_OPTIONS[0], maintenance: MAINTENANCE_OPTIONS[0], memo: '', setupAmount: 0, isLost: false, orderDate: null,
+                paymentType: PAYMENT_TYPES[0], setup: SETUP_OPTIONS[0], maintenance: MAINTENANCE_OPTIONS[0], memo: '', setupAmount: 0, isLost: false, orderDate: null, setupOrderDate: null,
+                siServices: {},
             };
         };
         
@@ -347,6 +384,7 @@
 
         const availableProductTypes = useMemo(() => {
             if (formState.category === '関与先') return PRODUCT_TYPES.filter(p => p !== 'ルータ' && p !== 'SI');
+            if (formState.category === 'FX4クラウド（SI）') return ['SI'];
             return PRODUCT_TYPES;
         }, [formState.category]);
 
@@ -392,7 +430,19 @@
         }, [formState.category, availableProductTypes, availablePaymentTypes, availableSetupOptions]);
 
         const handleCategorySelect = (category) => {
-            setFormState(prev => ({...getInitialState(), category}));
+            let newState = {...getInitialState(), category};
+            if (category === 'FX4クラウド（SI）') {
+                newState = {
+                    ...newState,
+                    productType: 'SI',
+                    paymentType: 'MIST',
+                    setup: 'なし',
+                    maintenance: 'なし',
+                    setupAmount: 0,
+                    siServices: {},
+                };
+            }
+            setFormState(newState);
             setStep(2);
         };
 
@@ -410,7 +460,7 @@
             setFormState(prevFormState => {
                 const newFormState = { ...prevFormState, [name]: value };
 
-                if (name === 'productType') {
+                if (name === 'productType' && prevFormState.category !== 'FX4クラウド（SI）') {
                     if (value === 'PC' || value === 'プリンタ') {
                         newFormState.paymentType = 'COD'; newFormState.maintenance = 'あり';
                     } else if (value === 'スキャナ') {
@@ -434,6 +484,34 @@
                 return newFormState;
             });
         };
+        
+        const handleSiServiceChange = useCallback((serviceId, quantity) => {
+            setFormState(prev => {
+                const newSiServices = { ...prev.siServices };
+                const newQuantity = Math.max(0, quantity);
+
+                if (newQuantity > 0) {
+                    newSiServices[serviceId] = newQuantity;
+                } else {
+                    delete newSiServices[serviceId];
+                }
+                
+                const newTotalAmount = Object.entries(newSiServices).reduce((sum, [id, qty]) => {
+                    const service = SI_PRODUCTS_MAP.get(id);
+                    return sum + (service ? service.price * qty : 0);
+                }, 0);
+
+                return {
+                    ...prev,
+                    siServices: newSiServices,
+                    mainAmount: newTotalAmount,
+                };
+            });
+        }, []);
+
+        const handleSiCheckboxChange = useCallback((serviceId, isChecked) => {
+            handleSiServiceChange(serviceId, isChecked ? 1 : 0);
+        }, [handleSiServiceChange]);
 
         const handleSubmit = (e) => {
             e.preventDefault();
@@ -444,40 +522,94 @@
 
         if (!isOpen) return null;
         
-        const showSetupAmount = formState.setup !== 'なし';
+        const isSIProject = formState.category === 'FX4クラウド（SI）';
+
+        const selectedServicesCount = Object.keys(formState.siServices || {}).length;
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4" onClick={onClose}>
                 {step === 1 && !isEditMode && (
-                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all p-8 text-center" onClick={e => e.stopPropagation()}>
+                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl transform transition-all p-8 text-center" onClick={e => e.stopPropagation()}>
                         <h3 className="text-xl font-bold text-slate-800 mb-2">新規案件の登録</h3>
                         <p className="text-slate-600 mb-8">まず、顧客種別を選択してください</p>
-                        <div className="flex justify-center gap-4">
+                        <div className="flex flex-wrap justify-center gap-4">
                             <button onClick={() => handleCategorySelect(CUSTOMER_CATEGORIES[0])} className="w-40 h-16 text-lg font-semibold text-blue-600 bg-blue-50 border-2 border-blue-500 rounded-lg hover:bg-blue-100 transition-colors">{CUSTOMER_CATEGORIES[0]}</button>
                             <button onClick={() => handleCategorySelect(CUSTOMER_CATEGORIES[1])} className="w-40 h-16 text-lg font-semibold text-blue-600 bg-blue-50 border-2 border-blue-500 rounded-lg hover:bg-blue-100 transition-colors">{CUSTOMER_CATEGORIES[1]}</button>
+                            <button onClick={() => handleCategorySelect(CUSTOMER_CATEGORIES[2])} className="w-40 h-16 text-lg font-semibold text-blue-600 bg-blue-50 border-2 border-blue-500 rounded-lg hover:bg-blue-100 transition-colors">{CUSTOMER_CATEGORIES[2]}</button>
                         </div>
                     </div>
                 )}
                 {step === 2 && (
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform transition-all" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex justify-between items-center"><h3 className="text-xl font-bold text-slate-800">{isEditMode ? '案件の編集' : `新規案件の登録 (${formState.category})`}</h3><button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"><XIcon className="w-5 h-5" /></button></div>
                         <form onSubmit={handleSubmit}>
-                            <div className="p-6 max-h-[70vh] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                <div><ModalLabel htmlFor="registrationDate">登録日 <span className="text-red-500">*</span></ModalLabel><ModalInput type="date" name="registrationDate" id="registrationDate" value={formState.registrationDate} onChange={handleChange} ref={dateInputRef} required /></div>
-                                <div></div>
-                                <div><ModalLabel htmlFor="clientName">顧客名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="clientName" id="clientName" value={formState.clientName} onChange={handleChange} required /></div>
-                                {formState.category === '関与先' ? (
-                                    <div><ModalLabel htmlFor="officeName">事務所名</ModalLabel><ModalInput type="text" name="officeName" id="officeName" value={formState.officeName || ''} onChange={handleChange} /></div>
-                                ) : ( <div></div> )}
-                                <div className="md:col-span-2"><ModalLabel htmlFor="projectName">案件名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="projectName" id="projectName" value={formState.projectName} onChange={handleChange} required /></div>
-                                <div><ModalLabel htmlFor="mainAmount">本体金額 (税抜)</ModalLabel><ModalInput type="text" name="mainAmount" id="mainAmount" value={formState.mainAmount.toLocaleString()} onChange={handleAmountChange} /></div>
-                                <div><ModalLabel htmlFor="division">区分</ModalLabel><ModalSelect name="division" id="division" value={formState.division} onChange={handleChange}>{DIVISIONS.map(d => <option key={d}>{d}</option>)}</ModalSelect></div>
-                                <div><ModalLabel htmlFor="productType">商品種別</ModalLabel><ModalSelect name="productType" id="productType" value={formState.productType} onChange={handleChange}>{availableProductTypes.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
-                                <div><ModalLabel htmlFor="paymentType">支払区分</ModalLabel><ModalSelect name="paymentType" id="paymentType" value={formState.paymentType} onChange={handleChange}>{availablePaymentTypes.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
-                                <div><ModalLabel htmlFor="setup">セットアップ</ModalLabel><ModalSelect name="setup" id="setup" value={formState.setup} onChange={handleChange}>{availableSetupOptions.map(s => <option key={s}>{s}</option>)}</ModalSelect></div>
-                                {showSetupAmount && <div><ModalLabel htmlFor="setupAmount">セットアップ金額 (税抜)</ModalLabel><ModalInput type="text" name="setupAmount" id="setupAmount" value={formState.setupAmount.toLocaleString()} onChange={handleAmountChange} readOnly={formState.setup !== 'あり (SCG)'} /></div>}
-                                <div><ModalLabel htmlFor="maintenance">保守契約</ModalLabel><ModalSelect name="maintenance" id="maintenance" value={formState.maintenance} onChange={handleChange}>{MAINTENANCE_OPTIONS.map(m => <option key={m}>{m}</option>)}</ModalSelect></div>
-                                <div className="md:col-span-2"><ModalLabel htmlFor="memo">メモ</ModalLabel><ModalTextarea name="memo" id="memo" value={formState.memo} onChange={handleChange} /></div>
+                            <div className="p-6 max-h-[70vh] overflow-y-auto">
+                                {isSIProject ? (
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                            <div><ModalLabel htmlFor="registrationDate">登録日 <span className="text-red-500">*</span></ModalLabel><ModalInput type="date" name="registrationDate" id="registrationDate" value={formState.registrationDate} onChange={handleChange} ref={dateInputRef} required /></div>
+                                            <div><ModalLabel htmlFor="clientName">顧客名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="clientName" id="clientName" value={formState.clientName} onChange={handleChange} required /></div>
+                                            <div className="md:col-span-2"><ModalLabel htmlFor="projectName">案件名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="projectName" id="projectName" value={formState.projectName} onChange={handleChange} required /></div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4 border-t border-slate-200">
+                                            <div className="lg:col-span-2 space-y-4 max-h-[40vh] overflow-y-auto pr-4 -mr-4">
+                                                {SI_PRODUCTS.map(category => (
+                                                    <div key={category.category}>
+                                                        <h4 className="text-md font-semibold text-slate-700 mb-2">{category.category}</h4>
+                                                        <div className="space-y-1">
+                                                            {category.items.map(service => (
+                                                                <label key={service.id} className="flex items-center p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent has-[:checked]:bg-blue-50 has-[:checked]:border-blue-200">
+                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked={!!formState.siServices[service.id]} onChange={(e) => handleSiCheckboxChange(service.id, e.target.checked)} />
+                                                                    <span className="ml-3 flex-grow text-sm text-slate-800">{service.name}</span>
+                                                                    <input 
+                                                                        type="number"
+                                                                        min="1"
+                                                                        value={formState.siServices[service.id] || ''}
+                                                                        onChange={(e) => handleSiServiceChange(service.id, parseInt(e.target.value, 10) || 0)}
+                                                                        onClick={e => e.stopPropagation()}
+                                                                        disabled={!formState.siServices[service.id]}
+                                                                        className="w-16 text-center text-sm bg-white border border-slate-300 rounded-md shadow-sm disabled:bg-slate-50 disabled:cursor-not-allowed mx-2"
+                                                                    />
+                                                                    <span className="font-mono text-sm text-slate-600 w-24 text-right">{service.price.toLocaleString()}円</span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="lg:col-span-1">
+                                                <div className="sticky top-0 bg-slate-100 p-4 rounded-lg border border-slate-200 shadow-sm">
+                                                    <h4 className="font-bold text-slate-800">選択中のサービス</h4>
+                                                    <p className="text-sm text-slate-600 mt-1">{selectedServicesCount}件 選択済み</p>
+                                                    <div className="mt-4 pt-4 border-t border-slate-200">
+                                                        <div className="flex justify-between items-baseline">
+                                                            <span className="font-bold text-slate-800">合計金額</span>
+                                                            <span className="text-2xl font-bold text-blue-600">{formState.mainAmount.toLocaleString()}<span className="text-sm ml-1">円</span></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                         <div className="pt-4 border-t border-slate-200"><ModalLabel htmlFor="memo">メモ</ModalLabel><ModalTextarea name="memo" id="memo" value={formState.memo} onChange={handleChange} /></div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                        <div><ModalLabel htmlFor="registrationDate">登録日 <span className="text-red-500">*</span></ModalLabel><ModalInput type="date" name="registrationDate" id="registrationDate" value={formState.registrationDate} onChange={handleChange} ref={dateInputRef} required /></div>
+                                        <div></div>
+                                        <div><ModalLabel htmlFor="clientName">顧客名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="clientName" id="clientName" value={formState.clientName} onChange={handleChange} required /></div>
+                                        <div><ModalLabel htmlFor="officeName">事務所名</ModalLabel><ModalInput type="text" name="officeName" id="officeName" value={formState.officeName || ''} onChange={handleChange} /></div>
+                                        <div className="md:col-span-2"><ModalLabel htmlFor="projectName">案件名 <span className="text-red-500">*</span></ModalLabel><ModalInput type="text" name="projectName" id="projectName" value={formState.projectName} onChange={handleChange} required /></div>
+                                        <div><ModalLabel htmlFor="mainAmount">本体金額 (税抜)</ModalLabel><ModalInput type="text" name="mainAmount" id="mainAmount" value={formState.mainAmount.toLocaleString()} onChange={handleAmountChange} /></div>
+                                        <div><ModalLabel htmlFor="division">区分</ModalLabel><ModalSelect name="division" id="division" value={formState.division} onChange={handleChange}>{DIVISIONS.map(d => <option key={d}>{d}</option>)}</ModalSelect></div>
+                                        <div><ModalLabel htmlFor="productType">商品種別</ModalLabel><ModalSelect name="productType" id="productType" value={formState.productType} onChange={handleChange}>{availableProductTypes.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
+                                        <div><ModalLabel htmlFor="paymentType">支払区分</ModalLabel><ModalSelect name="paymentType" id="paymentType" value={formState.paymentType} onChange={handleChange}>{availablePaymentTypes.map(p => <option key={p}>{p}</option>)}</ModalSelect></div>
+                                        <div><ModalLabel htmlFor="setup">セットアップ</ModalLabel><ModalSelect name="setup" id="setup" value={formState.setup} onChange={handleChange}>{availableSetupOptions.map(s => <option key={s}>{s}</option>)}</ModalSelect></div>
+                                        {formState.setup !== 'なし' && <div><ModalLabel htmlFor="setupAmount">セットアップ金額 (税抜)</ModalLabel><ModalInput type="text" name="setupAmount" id="setupAmount" value={formState.setupAmount.toLocaleString()} onChange={handleAmountChange} readOnly={formState.setup !== 'あり (SCG)'} /></div>}
+                                        <div><ModalLabel htmlFor="maintenance">保守契約</ModalLabel><ModalSelect name="maintenance" id="maintenance" value={formState.maintenance} onChange={handleChange}>{MAINTENANCE_OPTIONS.map(m => <option key={m}>{m}</option>)}</ModalSelect></div>
+                                        <div className="md:col-span-2"><ModalLabel htmlFor="memo">メモ</ModalLabel><ModalTextarea name="memo" id="memo" value={formState.memo} onChange={handleChange} /></div>
+                                    </div>
+                                )}
                             </div>
                             <div className="p-6 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end items-center space-x-3"><button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition">キャンセル</button><button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition">{isEditMode ? '更新する' : '登録する'}</button></div>
                         </form>
@@ -504,10 +636,9 @@
                     </div>
                     <div className="p-6 max-h-[70vh] overflow-y-auto">
                         <div className="mb-6 pb-6 border-b border-slate-200">
-                             <p className="text-xs text-slate-500">顧客名 {project.officeName && `/ 事務所名`}</p>
+                             <p className="text-xs text-slate-500">{project.officeName ? '事務所名 (顧客名)' : '顧客名'}</p>
                              <h4 className="text-2xl font-bold text-slate-900">
-                                 {project.clientName}
-                                 {project.officeName && <span className="text-lg text-slate-600 font-medium ml-2">/ {project.officeName}</span>}
+                                 {project.officeName ? `${project.officeName} (${project.clientName})` : project.clientName}
                             </h4>
                              <p className="text-xs text-slate-500 mt-4">案件名</p>
                              <p className="text-lg text-slate-700 mt-1">{project.projectName}</p>
@@ -521,16 +652,29 @@
                             <DetailItem label="保守契約" value={project.maintenance} />
                             <DetailItem label="登録日" value={new Date(project.registrationDate).toLocaleDateString('ja-JP')} />
                             <DetailItem label="受注日" value={project.orderDate ? new Date(project.orderDate).toLocaleDateString('ja-JP') : 'ー'} />
-                            <div className="flex flex-col">
+                            <DetailItem label="S/U発注日" value={project.setupOrderDate ? new Date(project.setupOrderDate).toLocaleDateString('ja-JP') : 'ー'} />
+                             <div className="flex flex-col">
                                <dt className="text-xs text-slate-500">金額内訳</dt>
                                <dd className="text-sm text-slate-900 mt-1">
                                     <div>本体: {project.mainAmount.toLocaleString()}円</div>
-                                    <div>セットアップ: {setupAmount.toLocaleString()}円</div>
+                                    {project.category !== 'FX4クラウド（SI）' && <div>セットアップ: {setupAmount.toLocaleString()}円</div>}
                                     <div className="font-bold border-t border-slate-200 mt-1 pt-1">合計: {totalAmount.toLocaleString()}円</div>
                                </dd>
                             </div>
                             <DetailItem label="メモ" value={project.memo} className="col-span-2 md:col-span-3" />
                         </div>
+                         {project.category === 'FX4クラウド（SI）' && project.siServices && Object.keys(project.siServices).length > 0 && (
+                            <div className="mt-6 pt-6 border-t border-slate-200">
+                                <h4 className="text-md font-semibold text-slate-800 mb-2">選択されたSIサービス</h4>
+                                <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
+                                    {Object.entries(project.siServices).map(([id, quantity]) => {
+                                        const service = SI_PRODUCTS_MAP.get(id);
+                                        if (!service) return null;
+                                        return <li key={id}>{service.name} x {quantity} ({ (service.price * quantity).toLocaleString() }円)</li>;
+                                    })}
+                                </ul>
+                            </div>
+                        )}
                     </div>
                      <div className="p-6 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex items-center gap-4 text-slate-600">
                         <button onClick={() => { onEdit(project); onClose(); }} className="flex items-center gap-2 hover:text-blue-600"><EditIcon className="w-5 h-5" /><span>編集</span></button>
@@ -643,8 +787,7 @@
                       <HankoStamp status={status} />
                       <div className="flex-grow min-w-0">
                           <h3 className="font-bold text-slate-900 truncate text-base">
-                              {project.clientName}
-                              {project.officeName && <span className="text-slate-500 text-xs font-normal ml-1">/ {project.officeName}</span>}
+                              {project.officeName ? `${project.officeName} (${project.clientName})` : project.clientName}
                           </h3>
                           <p className="text-slate-500 text-xs mt-1 truncate">{project.projectName}</p>
                       </div>
@@ -732,7 +875,7 @@
                 <div className="text-sm text-slate-500">{title}</div>
                 <div className={`text-3xl font-bold mt-1 ${colorClass}`}>{value}</div>
               </div>
-              {subtext && <div className="text-xs text-slate-500 mt-1">{subtext}</div>}
+              {subtext && <div className="text-xs text-slate-500">{subtext}</div>}
           </div>
       );
 
@@ -877,8 +1020,17 @@
           const stats = useMemo(() => {
               const allNonLostProjects = projects.filter(p => !p.isLost);
               
-              const calcTotals = (projectList) => {
-                  return projectList.reduce((sum, p) => sum + p.mainAmount + (p.setupAmount || 0), 0)
+              const calcNegotiationTotals = (projectList) => {
+                  return projectList.reduce((sum, p) => {
+                      let projectNegoAmount = 0;
+                      if (!p.tasks['本体受注']) {
+                          projectNegoAmount += p.mainAmount;
+                      }
+                      if (!p.tasks['S/U発注']) {
+                          projectNegoAmount += (p.setupAmount || 0);
+                      }
+                      return sum + projectNegoAmount;
+                  }, 0);
               };
 
               const calcOrderedTotals = (projectList) => {
@@ -890,34 +1042,26 @@
                   }, 0);
               };
               
-              const isSI = p => p.productType === 'SI' || p.productType === 'その他';
+              const isSI = p => p.category === 'FX4クラウド（SI）';
               const isFirm = p => p.category === '会計事務所';
               const isClient = p => p.category === '関与先';
               
-              const totalAmount = calcTotals(allNonLostProjects);
-              const totalAmountFirm = calcTotals(allNonLostProjects.filter(p => isFirm(p) && !isSI(p)));
-              const totalAmountClient = calcTotals(allNonLostProjects.filter(p => isClient(p) && !isSI(p)));
-              const totalAmountSI = calcTotals(allNonLostProjects.filter(p => isSI(p)));
-              
-              const totalSetupAmountFirm = allNonLostProjects.filter(isFirm).reduce((sum, p) => sum + (p.setupAmount || 0), 0);
-              const totalSetupAmountClient = allNonLostProjects.filter(isClient).reduce((sum, p) => sum + (p.setupAmount || 0), 0);
+              const negotiationAmount = calcNegotiationTotals(allNonLostProjects);
+              const negotiationAmountFirm = calcNegotiationTotals(allNonLostProjects.filter(p => isFirm(p)));
+              const negotiationAmountClient = calcNegotiationTotals(allNonLostProjects.filter(p => isClient(p)));
+              const negotiationAmountSI = calcNegotiationTotals(allNonLostProjects.filter(p => isSI(p)));
 
               const orderedAmount = calcOrderedTotals(allNonLostProjects);
-              const orderedAmountFirm = calcOrderedTotals(allNonLostProjects.filter(p => isFirm(p) && !isSI(p)));
-              const orderedAmountClient = calcOrderedTotals(allNonLostProjects.filter(p => isClient(p) && !isSI(p)));
+              const orderedAmountFirm = calcOrderedTotals(allNonLostProjects.filter(p => isFirm(p)));
+              const orderedAmountClient = calcOrderedTotals(allNonLostProjects.filter(p => isClient(p)));
               const orderedAmountSI = calcOrderedTotals(allNonLostProjects.filter(p => isSI(p)));
-
-              const orderedSetupAmountFirm = allNonLostProjects.filter(p => isFirm(p) && p.tasks['S/U発注']).reduce((sum, p) => sum + (p.setupAmount || 0), 0);
-              const orderedSetupAmountClient = allNonLostProjects.filter(p => isClient(p) && p.tasks['S/U発注']).reduce((sum, p) => sum + (p.setupAmount || 0), 0);
               
-              const orderedProjects = allNonLostProjects.filter(p => p.tasks['本体受注'] || p.tasks['S/U発注']);
               const achievementRate = goalAmount.total > 0 ? (orderedAmount / goalAmount.total) * 100 : 0;
 
               return { 
-                totalAmount, totalAmountFirm, totalAmountClient, totalAmountSI, totalSetupAmountFirm, totalSetupAmountClient,
-                orderedAmount, orderedAmountFirm, orderedAmountClient, orderedAmountSI, orderedSetupAmountFirm, orderedSetupAmountClient,
+                negotiationAmount, negotiationAmountFirm, negotiationAmountClient, negotiationAmountSI,
+                orderedAmount, orderedAmountFirm, orderedAmountClient, orderedAmountSI,
                 achievementRate, 
-                orderedProjectsCount: orderedProjects.length, totalProjectsCount: allNonLostProjects.length 
               };
           }, [projects, goalAmount]);
           
@@ -936,40 +1080,35 @@
                       <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative h-full flex flex-col">
                           {showSuccess && <div className="absolute top-2 right-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded goal-success-toast">目標金額を登録しました！</div>}
                           <div className="flex-grow">
-                            <div className="text-sm text-slate-500">目標金額</div>
+                             <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">目標金額</span>
+                                <button onClick={() => setIsGoalModalOpen(true)} className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100">{isGoalRegistered ? '編集' : '登録'}</button>
+                              </div>
                             {isGoalRegistered ? (
                               <>
                                 <div className="text-3xl font-bold mt-1 text-green-600">{goalAmount.total.toLocaleString()}<span className="text-lg ml-1">円</span></div>
-                                <div className="text-xs text-slate-500 mt-2 space-y-1 border-t pt-2">
-                                   <p className="flex justify-between"><span>会計事務所:</span><span>{(goalAmount.hardware_firm || 0).toLocaleString()}円</span></p>
-                                   <p className="flex justify-between"><span>関与先:</span><span>{(goalAmount.hardware_client || 0).toLocaleString()}円</span></p>
-                                   <p className="flex justify-between"><span>SI:</span><span>{(goalAmount.si || 0).toLocaleString()}円</span></p>
+                                <div className="text-sm text-slate-500 mt-2 pt-2 border-t">
+                                  <div className="space-y-1">
+                                     <p className="flex justify-between"><span>会計事務所:</span><span>{(goalAmount.hardware_firm || 0).toLocaleString()}円</span></p>
+                                     <p className="flex justify-between"><span>関与先:</span><span>{(goalAmount.hardware_client || 0).toLocaleString()}円</span></p>
+                                     <p className="flex justify-between"><span>SI:</span><span>{(goalAmount.si || 0).toLocaleString()}円</span></p>
+                                  </div>
                                 </div>
                               </>
                             ) : (
                               <div className="text-3xl font-bold mt-1 text-slate-400">未登録</div>
                             )}
                           </div>
-                          <div className="flex justify-end mt-2">
-                            <button onClick={() => setIsGoalModalOpen(true)} className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100">{isGoalRegistered ? '編集' : '登録'}</button>
-                          </div>
                       </div>
                       <DashboardCard 
-                          title="対象総額" 
-                          value={`${stats.totalAmount.toLocaleString()}円`} 
+                          title="ネゴ総額（未受注）" 
+                          value={`${stats.negotiationAmount.toLocaleString()}円`} 
                           subtext={
-                            <div className="text-sm">
-                                <div className="flex justify-between items-baseline"><span className="font-semibold text-base">{stats.totalProjectsCount}件</span></div>
-                                <div className="space-y-2 mt-1 border-t pt-1">
-                                    <div>
-                                      <div className="flex justify-between"><span>会計事務所:</span><span>{stats.totalAmountFirm.toLocaleString()}円</span></div>
-                                      <div className="text-xs text-slate-500 text-right -mt-1">(内 S/U: {stats.totalSetupAmountFirm.toLocaleString()}円)</div>
-                                    </div>
-                                     <div>
-                                      <div className="flex justify-between"><span>関与先:</span><span>{stats.totalAmountClient.toLocaleString()}円</span></div>
-                                      <div className="text-xs text-slate-500 text-right -mt-1">(内 S/U: {stats.totalSetupAmountClient.toLocaleString()}円)</div>
-                                    </div>
-                                    <div className="flex justify-between"><span>SI:</span><span>{stats.totalAmountSI.toLocaleString()}円</span></div>
+                            <div className="text-sm mt-2 pt-2 border-t">
+                                <div className="space-y-1">
+                                    <div className="flex justify-between"><span>会計事務所:</span><span>{stats.negotiationAmountFirm.toLocaleString()}円</span></div>
+                                    <div className="flex justify-between"><span>関与先:</span><span>{stats.negotiationAmountClient.toLocaleString()}円</span></div>
+                                    <div className="flex justify-between"><span>SI:</span><span>{stats.negotiationAmountSI.toLocaleString()}円</span></div>
                                 </div>
                             </div>
                           } 
@@ -980,17 +1119,10 @@
                           value={`${stats.orderedAmount.toLocaleString()}円`} 
                           colorClass="text-blue-600" 
                           subtext={
-                             <div className="text-sm">
-                                <div className="flex justify-between items-baseline"><span className="font-semibold text-base">{stats.orderedProjectsCount}件</span></div>
-                                 <div className="space-y-2 mt-1 border-t pt-1">
-                                    <div>
-                                      <div className="flex justify-between"><span>会計事務所:</span><span>{stats.orderedAmountFirm.toLocaleString()}円</span></div>
-                                      <div className="text-xs text-slate-500 text-right -mt-1">(内 S/U: {stats.orderedSetupAmountFirm.toLocaleString()}円)</div>
-                                    </div>
-                                     <div>
-                                      <div className="flex justify-between"><span>関与先:</span><span>{stats.orderedAmountClient.toLocaleString()}円</span></div>
-                                      <div className="text-xs text-slate-500 text-right -mt-1">(内 S/U: {stats.orderedSetupAmountClient.toLocaleString()}円)</div>
-                                    </div>
+                             <div className="text-sm mt-2 pt-2 border-t">
+                                <div className="space-y-1">
+                                    <div className="flex justify-between"><span>会計事務所:</span><span>{stats.orderedAmountFirm.toLocaleString()}円</span></div>
+                                    <div className="flex justify-between"><span>関与先:</span><span>{stats.orderedAmountClient.toLocaleString()}円</span></div>
                                     <div className="flex justify-between"><span>SI:</span><span>{stats.orderedAmountSI.toLocaleString()}円</span></div>
                                 </div>
                             </div>
@@ -1051,9 +1183,9 @@
       };
 
       const AnalysisView = ({ projects, period, goalAmount }) => {
-        const [maintenanceFilter, setMaintenanceFilter] = useState('全体');
         const [monthlyFilter, setMonthlyFilter] = useState('すべて');
         const [trendFilter, setTrendFilter] = useState('すべて');
+        const [compositionType, setCompositionType] = useState('受注');
         
         const monthlyTarget = useMemo(() => {
           if (!period || !goalAmount || goalAmount.total === 0) return 0;
@@ -1090,34 +1222,39 @@
               }
           }
 
-          const hardwareTypes = ['PC', 'スキャナ', 'プリンタ', 'ルータ'];
           const filteredMonthlyProjects = nonLostProjects.filter(p => {
               if (monthlyFilter === 'すべて') return true;
-              if (monthlyFilter === '会計事務所') return p.category === '会計事務所' && hardwareTypes.includes(p.productType);
-              if (monthlyFilter === '関与先') return p.category === '関与先' && hardwareTypes.includes(p.productType);
-              if (monthlyFilter === 'SI') return p.productType === 'SI' || p.productType === 'その他';
+              if (monthlyFilter === '会計事務所') return p.category === '会計事務所';
+              if (monthlyFilter === '関与先') return p.category === '関与先';
+              if (monthlyFilter === 'SI') return p.category === 'FX4クラウド（SI）';
               return true;
           });
 
           const monthlyOrdered = allMonthLabels.reduce((acc, label) => ({ ...acc, [label]: 0 }), {});
           const monthlyOrderedCounts = allMonthLabels.reduce((acc, label) => ({ ...acc, [label]: 0 }), {});
+          const projectsInMonth = allMonthLabels.reduce((acc, label) => ({ ...acc, [label]: new Set() }), {});
 
           filteredMonthlyProjects.forEach(p => {
-              const registrationDate = new Date(p.registrationDate);
-              const registrationMonthKey = `${registrationDate.getFullYear()}/${String(registrationDate.getMonth() + 1).padStart(2, '0')}`;
-              const orderDate = p.orderDate ? new Date(p.orderDate) : null;
-              
-              let projectOrderedAmount = 0;
-              if (p.tasks['本体受注']) projectOrderedAmount += p.mainAmount;
-              if (p.tasks['S/U発注']) projectOrderedAmount += (p.setupAmount || 0);
-
-              if (projectOrderedAmount > 0) {
-                const monthKey = orderDate ? `${orderDate.getFullYear()}/${String(orderDate.getMonth() + 1).padStart(2, '0')}` : registrationMonthKey;
-                if(monthlyOrdered.hasOwnProperty(monthKey)) {
-                    monthlyOrdered[monthKey] += projectOrderedAmount;
-                    monthlyOrderedCounts[monthKey]++;
-                }
+              if (p.tasks['本体受注'] && p.orderDate) {
+                  const orderDate = new Date(p.orderDate);
+                  const monthKey = `${orderDate.getFullYear()}/${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
+                  if (monthlyOrdered.hasOwnProperty(monthKey)) {
+                      monthlyOrdered[monthKey] += p.mainAmount;
+                      projectsInMonth[monthKey].add(p.id);
+                  }
               }
+              if (p.tasks['S/U発注'] && p.setupOrderDate) {
+                  const setupOrderDate = new Date(p.setupOrderDate);
+                  const monthKey = `${setupOrderDate.getFullYear()}/${String(setupOrderDate.getMonth() + 1).padStart(2, '0')}`;
+                  if (monthlyOrdered.hasOwnProperty(monthKey)) {
+                      monthlyOrdered[monthKey] += (p.setupAmount || 0);
+                      projectsInMonth[monthKey].add(p.id);
+                  }
+              }
+          });
+
+          allMonthLabels.forEach(label => {
+            monthlyOrderedCounts[label] = projectsInMonth[label].size;
           });
 
           const monthlyData = {
@@ -1169,12 +1306,11 @@
          const trendChartData = useMemo(() => {
             if (!period) return { labels: [], datasets: [] };
             
-            const hardwareTypes = ['PC', 'スキャナ', 'プリンタ', 'ルータ'];
             const filteredProjects = projects.filter(p => {
               if (trendFilter === 'すべて') return true;
-              if (trendFilter === '会計事務所') return p.category === '会計事務所' && hardwareTypes.includes(p.productType);
-              if (trendFilter === '関与先') return p.category === '関与先' && hardwareTypes.includes(p.productType);
-              if (trendFilter === 'SI') return p.productType === 'SI' || p.productType === 'その他';
+              if (trendFilter === '会計事務所') return p.category === '会計事務所';
+              if (trendFilter === '関与先') return p.category === '関与先';
+              if (trendFilter === 'SI') return p.category === 'FX4クラウド（SI）';
               return true;
             });
 
@@ -1189,27 +1325,30 @@
             }
             
             const dailyTotals = new Map();
-            filteredProjects
-                .filter(p => !p.isLost && p.orderDate && p.tasks['本体受注'])
-                .forEach(p => {
+            filteredProjects.filter(p => !p.isLost).forEach(p => {
+                if (p.tasks['本体受注'] && p.orderDate) {
                     const orderDate = new Date(p.orderDate);
-                     if (orderDate < startDate || orderDate > endDate) return;
-                    const dateString = orderDate.toISOString().split('T')[0];
-                    
-                    let orderAmount = p.mainAmount;
-                    if (p.tasks['S/U発注']) {
-                        orderAmount += (p.setupAmount || 0);
+                    if (orderDate >= startDate && orderDate <= endDate) {
+                        const dateString = orderDate.toISOString().split('T')[0];
+                        dailyTotals.set(dateString, (dailyTotals.get(dateString) || 0) + p.mainAmount);
                     }
+                }
+                if (p.tasks['S/U発注'] && p.setupOrderDate) {
+                    const setupOrderDate = new Date(p.setupOrderDate);
+                     if (setupOrderDate >= startDate && setupOrderDate <= endDate) {
+                        const dateString = setupOrderDate.toISOString().split('T')[0];
+                        dailyTotals.set(dateString, (dailyTotals.get(dateString) || 0) + (p.setupAmount || 0));
+                    }
+                }
+            });
 
-                    if (dailyTotals.has(dateString)) {
-                        dailyTotals.set(dateString, dailyTotals.get(dateString) + orderAmount);
-                    } else {
-                        dailyTotals.set(dateString, orderAmount);
-                    }
-                });
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
             let cumulativeAmount = 0;
             const cumulativeData = allDates.map(date => {
+                if (date > today) return null;
+                
                 const dateString = date.toISOString().split('T')[0];
                 if (dailyTotals.has(dateString)) {
                     cumulativeAmount += dailyTotals.get(dateString);
@@ -1233,9 +1372,26 @@
                 if (totalDays <= 1) return targetTotal;
                 return (targetTotal / (totalDays - 1)) * index;
             });
+            
+            const monthStarts = new Set();
+            let lastMonth = -1;
+            allDates.forEach((d, i) => {
+                const currentMonth = d.getMonth();
+                if (currentMonth !== lastMonth) {
+                    monthStarts.add(i);
+                    lastMonth = currentMonth;
+                }
+            });
 
             return {
-                labels: allDates.map(d => d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })),
+                labels: allDates.map((d, i) => {
+                    const month = d.getMonth() + 1;
+                    const date = d.getDate();
+                    if (date === Math.floor(allDates.filter(ad => ad.getMonth() === d.getMonth()).length / 2)) {
+                         return `${month}月`;
+                    }
+                    return '';
+                }),
                 datasets: [
                     {
                         type: 'line',
@@ -1244,9 +1400,10 @@
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 2,
-                        fill: true,
+                        fill: false,
                         tension: 0.1,
                         pointRadius: 0,
+                        order: 2,
                     },
                     {
                         type: 'line',
@@ -1258,8 +1415,10 @@
                         fill: false,
                         pointRadius: 0,
                         borderDash: [5, 5],
-                    }
-                ]
+                        order: 1,
+                    },
+                ],
+                monthStarts,
             };
         }, [projects, period, goalAmount, trendFilter]);
 
@@ -1267,12 +1426,7 @@
             const relevantProductTypes = ['PC', 'プリンタ', 'ルータ'];
             const filteredProjects = projects
                 .filter(p => p.tasks['本体受注'])
-                .filter(p => {
-                    if (maintenanceFilter === '全体') {
-                        return relevantProductTypes.includes(p.productType);
-                    }
-                    return p.productType === maintenanceFilter;
-                });
+                .filter(p => relevantProductTypes.includes(p.productType));
             
             const withMaintenance = filteredProjects.filter(p => p.maintenance === 'あり').length;
             const withoutMaintenance = filteredProjects.length - withMaintenance;
@@ -1288,23 +1442,28 @@
                 }],
                 total,
             };
-        }, [projects, maintenanceFilter]);
+        }, [projects]);
 
         const categorySalesData = useMemo(() => {
             const data = { '会計事務所': 0, '関与先': 0, 'SI': 0 };
             
             projects.filter(p => !p.isLost).forEach(p => {
-                let orderedAmount = 0;
-                if (p.tasks['本体受注']) orderedAmount += p.mainAmount;
-                if (p.tasks['S/U発注']) orderedAmount += (p.setupAmount || 0);
+                let amount = 0;
+                if (compositionType === '受注') {
+                    if (p.tasks['本体受注']) amount += p.mainAmount;
+                    if (p.tasks['S/U発注']) amount += (p.setupAmount || 0);
+                } else { // '未受注'
+                    if (!p.tasks['本体受注']) amount += p.mainAmount;
+                    if (!p.tasks['S/U発注']) amount += (p.setupAmount || 0);
+                }
                 
-                if (orderedAmount > 0) {
-                    if (p.productType === 'SI' || p.productType === 'その他') {
-                        data['SI'] += orderedAmount;
+                if (amount > 0) {
+                    if (p.category === 'FX4クラウド（SI）') {
+                        data['SI'] += amount;
                     } else if (p.category === '会計事務所') {
-                        data['会計事務所'] += orderedAmount;
+                        data['会計事務所'] += amount;
                     } else if (p.category === '関与先') {
-                        data['関与先'] += orderedAmount;
+                        data['関与先'] += amount;
                     }
                 }
             });
@@ -1321,7 +1480,7 @@
                 }],
                 total,
             };
-        }, [projects]);
+        }, [projects, compositionType]);
 
 
         if (projects.filter(p => !p.isLost).length === 0) {
@@ -1340,8 +1499,9 @@
              if (context.chart.options.indexAxis === 'y') {
                 value = context.parsed.x;
             }
-            if (context.dataset.type === 'line') {
-                return `${label}: ${value.toLocaleString()}円`
+            if (context.dataset.type === 'line' || context.dataset.type === 'bar') {
+                 if (context.dataset.label === '本日') return '本日';
+                return `${label}: ${Math.round(value).toLocaleString()}円`;
             }
             if (value === null || typeof value === 'undefined') {
                 return `${label}: 0円`;
@@ -1369,10 +1529,26 @@
         const trendChartOptions = {
             responsive: true, maintainAspectRatio: false,
             plugins: {
-                legend: { display: true, position: 'top' },
-                tooltip: { mode: 'index', intersect: false, callbacks: { label: (c) => `${c.dataset.label}: ${Math.round(c.raw).toLocaleString()}円` } },
+                legend: { display: true, position: 'top', labels: { filter: item => item.text !== '本日' } },
+                tooltip: { mode: 'index', intersect: false, callbacks: tooltipCallbacks },
             },
-            scales: { x: { ticks: { autoSkip: true, maxTicksLimit: 15 } }, y: { beginAtZero: true, ticks: { callback: value => `${(value / 10000)}万円` } } },
+            scales: { 
+                x: { 
+                    ticks: { autoSkip: false, maxRotation: 0 },
+                    grid: {
+                        display: true,
+                        drawOnChartArea: true,
+                        drawTicks: true,
+                        color: (context) => {
+                            if (trendChartData.monthStarts && trendChartData.monthStarts.has(context.index) && context.index > 0) {
+                                return 'rgba(203, 213, 225, 0.8)';
+                            }
+                            return 'transparent';
+                        },
+                    },
+                }, 
+                y: { beginAtZero: true, ticks: { callback: value => `${(value / 10000)}万円` } } 
+            },
         };
 
         const maintenanceDoughnutOptions = {
@@ -1380,8 +1556,8 @@
             plugins: { legend: { display: true, position: 'bottom', onClick: null }, tooltip: { callbacks: { label: (c) => `${c.label}: ${c.raw}件` } } }
         };
 
-        const categoryDoughnutOptions = {
-            responsive: true, maintainAspectRatio: false, cutout: '70%', rotation: -90,
+        const categoryPieOptions = {
+            responsive: true, maintainAspectRatio: false, cutout: 0,
             plugins: { 
                 legend: { display: true, position: 'bottom', onClick: null }, 
                 tooltip: { 
@@ -1409,7 +1585,7 @@
                       ))}
                   </div>
                 </div>
-                <div className="h-80"><ChartComponent type="line" data={trendChartData} options={trendChartOptions} /></div>
+                <div className="h-80"><ChartComponent type="bar" data={trendChartData} options={trendChartOptions} /></div>
               </div>
 
               <div className="lg:col-span-3 bg-white shadow-lg rounded-xl p-6">
@@ -1432,16 +1608,7 @@
               </div>
 
               <div className="bg-white shadow-lg rounded-xl p-6">
-                <h3 className="font-bold text-slate-800">保守締結率</h3>
-                <div className="flex justify-center my-2">
-                    <div className="flex p-1 space-x-1 bg-slate-200/70 rounded-lg">
-                        {['全体', 'PC', 'プリンタ', 'ルータ'].map(item => (
-                            <button key={item} onClick={() => setMaintenanceFilter(item)} className={`px-4 py-1 text-xs font-semibold transition-colors rounded-md ${maintenanceFilter === item ? 'bg-white text-blue-600 shadow' : 'text-slate-600 hover:bg-slate-100'}`}>
-                                {item}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                <h3 className="font-bold text-slate-800 text-center mb-4">保守締結率</h3>
                 {maintenanceChartData.total > 0 ? (
                     <div className="h-80 relative flex justify-center items-center -mt-4">
                         <ChartComponent type="doughnut" data={maintenanceChartData} options={maintenanceDoughnutOptions} />
@@ -1457,16 +1624,21 @@
                 )}
               </div>
               <div className="bg-white shadow-lg rounded-xl p-6">
-                <h3 className="font-bold text-slate-800 mb-4">売上構成 (受注)</h3>
+                <div className="relative h-8 flex items-center justify-center mb-4">
+                    <h3 className="font-bold text-slate-800 text-center">売上構成 ({compositionType})</h3>
+                    <div className="absolute top-0 right-0">
+                        <div className="flex p-1 space-x-1 bg-slate-200/70 rounded-lg">
+                            {['受注', '未受注'].map(item => (
+                                <button key={item} onClick={() => setCompositionType(item)} className={`px-3 py-1 text-xs font-semibold transition-colors rounded-md ${compositionType === item ? 'bg-white text-blue-600 shadow' : 'text-slate-600 hover:bg-slate-100'}`}>
+                                    {item}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
                 {categorySalesData.total > 0 ? (
                     <div className="h-80 relative flex justify-center items-center -mt-4">
-                        <ChartComponent type="doughnut" data={categorySalesData} options={categoryDoughnutOptions} />
-                        <div className="absolute text-center pointer-events-none">
-                            <div className="text-2xl font-bold text-slate-800">
-                                {categorySalesData.total.toLocaleString()}円
-                            </div>
-                            <div className="text-sm text-slate-500">受注総額</div>
-                        </div>
+                        <ChartComponent type="pie" data={categorySalesData} options={categoryPieOptions} />
                     </div>
                 ) : (
                     <div className="h-80 flex items-center justify-center text-slate-500">対象の案件がありません</div>
@@ -1480,7 +1652,7 @@
           const periodData = usePeriodCalculator();
           const { selectedPeriod, setSelectedPeriod, getCurrentPeriod, periods } = periodData;
           
-          const defaultGoal = { total: 10000000, hardware_firm: 0, hardware_client: 0, si: 0 };
+          const defaultGoal = { total: 0, hardware_firm: 0, hardware_client: 0, si: 0 };
 
           const [allData, setAllData] = useState(() => {
               try {
@@ -1502,7 +1674,7 @@
                 
                 setAllData(prevData => {
                   const migratedData = {
-                      projects: JSON.parse(oldProjectsJSON).map(p => ({ orderDate: null, ...p })),
+                      projects: JSON.parse(oldProjectsJSON).map(p => ({ ...p, orderDate: p.orderDate || null, setupOrderDate: p.setupOrderDate || null })),
                       goalAmount: {
                           total: oldGoalAmount,
                           hardware_firm: 0,
@@ -1568,7 +1740,7 @@
           const [memoModalProject, setMemoModalProject] = useState(null);
           const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
           const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-          const [orderDateModalState, setOrderDateModalState] = useState({ isOpen: false, project: null, taskName: null });
+          const [dateEntryModalState, setDateEntryModalState] = useState({ isOpen: false, project: null, taskName: null });
 
           const initialFilters = { keyword: '', status: 'すべて', customerCategory: 'すべて' };
           const [filters, setFilters] = useState(initialFilters);
@@ -1634,32 +1806,46 @@
               });
           };
           
-          const handleSaveOrderDate = (date) => {
-            const { project, taskName } = orderDateModalState;
+          const handleSaveTaskDate = (date) => {
+            const { project, taskName } = dateEntryModalState;
             setProjectsForCurrentPeriod(prevProjects => prevProjects.map(p => {
                 if (p.id === project.id) {
-                    return { ...p, tasks: { ...p.tasks, [taskName]: true }, orderDate: date };
+                    const updatedProject = { ...p, tasks: { ...p.tasks, [taskName]: true } };
+                    if (taskName === '本体受注') {
+                        updatedProject.orderDate = date;
+                    } else if (taskName === 'S/U発注') {
+                        updatedProject.setupOrderDate = date;
+                    }
+                    return updatedProject;
                 }
                 return p;
             }));
-            setOrderDateModalState({ isOpen: false, project: null, taskName: null });
+            setDateEntryModalState({ isOpen: false, project: null, taskName: null });
           };
 
           const handleTaskToggle = (project, taskName) => {
               if (project.isLost) return;
 
-              if (taskName === '本体受注' && !project.tasks[taskName]) {
-                  setOrderDateModalState({ isOpen: true, project: project, taskName: taskName });
+              if ((taskName === '本体受注' || taskName === 'S/U発注') && !project.tasks[taskName]) {
+                  const modalDetails = taskName === '本体受注'
+                    ? { title: '受注日の登録', description: '本体受注を完了にするには、受注日を登録してください。', dateLabel: '受注日', defaultDate: project.orderDate }
+                    : { title: 'S/U発注日の登録', description: 'S/U発注を完了にするには、発注日を登録してください。', dateLabel: 'S/U発注日', defaultDate: project.setupOrderDate };
+                  
+                  setDateEntryModalState({ isOpen: true, project, taskName, ...modalDetails });
                   return; 
               }
 
               setProjectsForCurrentPeriod(prevProjects => prevProjects.map(p => {
                   if (p.id === project.id) {
                       const newTasks = { ...p.tasks, [taskName]: !p.tasks[taskName] };
+                      const updatedProject = { ...p, tasks: newTasks };
                       if (taskName === '本体受注' && p.tasks[taskName]) { // unchecking
-                          return { ...p, tasks: newTasks, orderDate: null };
+                          updatedProject.orderDate = null;
                       }
-                      return { ...p, tasks: newTasks };
+                       if (taskName === 'S/U発注' && p.tasks[taskName]) { // unchecking
+                          updatedProject.setupOrderDate = null;
+                      }
+                      return updatedProject;
                   }
                   return p;
               }));
@@ -1672,7 +1858,7 @@
                     const newProject = {
                         ...project, id: Date.now(), registrationDate: new Date().toISOString().split('T')[0],
                         tasks: TASKS.reduce((acc, task) => ({...acc, [task]: false}), {}),
-                        isLost: false, orderDate: null, memo: `(繰越元: ${project.registrationDate} ${project.projectName})\n${project.memo}`
+                        isLost: false, orderDate: null, setupOrderDate: null, memo: `(繰越元: ${project.registrationDate} ${project.projectName})\n${project.memo}`
                     };
                     setProjectsForCurrentPeriod(prev => [...prev, newProject]);
                     setConfirmation({isOpen: false});
@@ -1927,11 +2113,14 @@
                       onClose={() => setMemoModalProject(null)}
                       onSave={handleSaveMemo}
                   />
-                  <OrderDateModal
-                      isOpen={orderDateModalState.isOpen}
-                      defaultDate={orderDateModalState.project?.orderDate}
-                      onClose={() => setOrderDateModalState({ isOpen: false, project: null, taskName: null })}
-                      onConfirm={handleSaveOrderDate}
+                  <DateEntryModal
+                      isOpen={dateEntryModalState.isOpen}
+                      defaultDate={dateEntryModalState.defaultDate}
+                      title={dateEntryModalState.title}
+                      description={dateEntryModalState.description}
+                      dateLabel={dateEntryModalState.dateLabel}
+                      onClose={() => setDateEntryModalState({ isOpen: false, project: null, taskName: null })}
+                      onConfirm={handleSaveTaskDate}
                   />
                    <GuideModal 
                       isOpen={isGuideModalOpen} 
